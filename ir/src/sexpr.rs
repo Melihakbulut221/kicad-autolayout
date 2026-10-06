@@ -44,7 +44,11 @@ pub enum ParseErrorKind {
 
 impl ParseError {
     fn at(src: &str, byte: usize, kind: ParseErrorKind) -> ParseError {
-        let line = src.as_bytes()[..byte].iter().filter(|&&b| b == b'\n').count() + 1;
+        let line = src.as_bytes()[..byte]
+            .iter()
+            .filter(|&&b| b == b'\n')
+            .count()
+            + 1;
         ParseError { kind, byte, line }
     }
 }
@@ -97,7 +101,11 @@ pub fn parse(src: &str) -> Result<Document, ParseError> {
         let ws = src[ws_start..i].to_string();
         if i == bytes.len() {
             if let Some(frame) = stack.last() {
-                return Err(ParseError::at(src, frame.open, ParseErrorKind::UnclosedList));
+                return Err(ParseError::at(
+                    src,
+                    frame.open,
+                    ParseErrorKind::UnclosedList,
+                ));
             }
             let trailing = ws;
             return Ok(Document { nodes, trailing });
@@ -197,7 +205,11 @@ impl Document {
     /// Same atoms in the same structure, ignoring whitespace.
     pub fn same_tree(&self, other: &Document) -> bool {
         self.nodes.len() == other.nodes.len()
-            && self.nodes.iter().zip(&other.nodes).all(|(a, b)| a.same_tree(b))
+            && self
+                .nodes
+                .iter()
+                .zip(&other.nodes)
+                .all(|(a, b)| a.same_tree(b))
     }
 }
 
@@ -230,7 +242,8 @@ impl Node {
 
     /// All child lists whose head is `head`.
     pub fn children<'a>(&'a self, head: &'a str) -> impl Iterator<Item = &'a Node> + 'a {
-        self.items().iter().filter(move |n| n.head() == Some(head))
+        let items = self.items().iter();
+        items.filter(move |n| n.head() == Some(head))
     }
 
     /// Same atoms in the same structure, ignoring whitespace.
@@ -343,7 +356,8 @@ mod tests {
         let doc = parse(SAMPLE).unwrap();
         let board = &doc.nodes[0];
         assert_eq!(board.head(), Some("kicad_pcb"));
-        assert_eq!(board.child("version").and_then(|v| v.arg(1)), Some("20240108"));
+        let version = board.child("version").and_then(|v| v.arg(1));
+        assert_eq!(version, Some("20240108"));
         assert_eq!(board.children("net").count(), 1);
         assert_eq!(board.items()[0].head(), None);
         let name = board.child("net").and_then(|n| n.arg(2)).map(unquote);

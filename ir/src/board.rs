@@ -124,7 +124,9 @@ fn mm_arg(node: Option<&Node>) -> Option<Nm> {
 }
 
 fn point(node: &Node) -> Option<(Nm, Nm)> {
-    Some((Nm::parse_mm(node.arg(1)?)?, Nm::parse_mm(node.arg(2)?)?))
+    let x = Nm::parse_mm(node.arg(1)?)?;
+    let y = Nm::parse_mm(node.arg(2)?)?;
+    Some((x, y))
 }
 
 fn distance(x0: Nm, y0: Nm, x1: Nm, y1: Nm) -> Nm {
@@ -220,7 +222,8 @@ fn edge_points(item: &Node, pts: &mut Vec<(Nm, Nm)>) {
 }
 
 fn ref_prefix(reference: &str) -> String {
-    reference.chars().take_while(|c| !c.is_ascii_digit()).collect()
+    let prefix = reference.chars().take_while(|c| !c.is_ascii_digit());
+    prefix.collect()
 }
 
 fn json_str(s: &str) -> String {
@@ -258,17 +261,18 @@ impl BoardSummary {
     pub fn to_json(&self) -> String {
         let mut pads = 0;
         let mut prefixes: BTreeMap<String, usize> = BTreeMap::new();
-        let mut footprints = Vec::with_capacity(self.footprints.len());
+        let mut fp_objects = Vec::with_capacity(self.footprints.len());
         for f in &self.footprints {
             pads += f.pads;
             *prefixes.entry(ref_prefix(&f.reference)).or_default() += 1;
-            footprints.push(json_object(&[
+            let obj = json_object(&[
                 ("ref", json_str(&f.reference)),
                 ("value", json_str(&f.value)),
                 ("lib", json_str(&f.lib_id)),
                 ("layer", json_str(&f.layer)),
                 ("pads", f.pads.to_string()),
-            ]));
+            ]);
+            fp_objects.push(obj);
         }
         let mut by_prefix = Vec::with_capacity(prefixes.len());
         for (prefix, n) in &prefixes {
@@ -303,6 +307,7 @@ impl BoardSummary {
             ("vias", self.vias.to_string()),
             ("zones", self.zones.to_string()),
         ]);
+        let footprints = format!("[\n    {}\n  ]", fp_objects.join(",\n    "));
         let fields = [
             ("schema", json_str(SUMMARY_SCHEMA)),
             ("version", json_str(&self.version)),
@@ -314,7 +319,7 @@ impl BoardSummary {
             ("footprints_by_prefix", json_object(&by_prefix)),
             ("nets", json_array(&nets)),
             ("segment_length_nm", json_object(&lengths)),
-            ("footprints", format!("[\n    {}\n  ]", footprints.join(",\n    "))),
+            ("footprints", footprints),
         ];
         let mut lines = Vec::with_capacity(fields.len());
         for (key, value) in &fields {
@@ -391,13 +396,17 @@ mod tests {
     #[test]
     fn json_has_fixed_layout() {
         let json = summary().to_json();
-        assert!(json.starts_with("{\n  \"schema\": \"kal-board-summary/1\",\n"));
+        let head = "{\n  \"schema\": \"kal-board-summary/1\",\n";
+        assert!(json.starts_with(head));
         assert!(json.contains("\"thickness_nm\": 1600000,"));
-        assert!(json.contains("\"outline_nm\": [0, 0, 65000000, 40000000],"));
-        assert!(json.contains("\"footprints_by_prefix\": {\"C\": 1, \"R\": 1},"));
+        let outline = "\"outline_nm\": [0, 0, 65000000, 40000000],";
+        assert!(json.contains(outline));
+        let prefixes = "\"footprints_by_prefix\": {\"C\": 1, \"R\": 1},";
+        assert!(json.contains(prefixes));
         let lengths = "\"segment_length_nm\": {\"/DDR/DQ0\": 1000000, \"GND\": 11000000},";
         assert!(json.contains(lengths));
-        assert!(json.contains("{\"ref\": \"R7\", \"value\": \"10k\", \"lib\": \"R_0603\","));
+        let r7 = "{\"ref\": \"R7\", \"value\": \"10k\", \"lib\": \"R_0603\",";
+        assert!(json.contains(r7));
         assert!(json.ends_with("\"pads\": 1}\n  ]\n}\n"));
     }
 
