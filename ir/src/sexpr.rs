@@ -208,6 +208,26 @@ pub fn parse(src: &str) -> Result<Document, ParseError> {
     }
 }
 
+/// The value of an atom: quoted strings lose their quotes and escapes, symbols are unchanged.
+pub fn unquote(text: &str) -> String {
+    let Some(inner) = text.strip_prefix('"').and_then(|t| t.strip_suffix('"')) else {
+        return text.to_string();
+    };
+    let mut out = String::with_capacity(inner.len());
+    let mut escaped = false;
+    for c in inner.chars() {
+        if escaped {
+            out.push(if c == 'n' { '\n' } else { c });
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 impl Document {
     /// Write back with the original layout; byte-identical to the parsed input.
     pub fn write(&self) -> String {
@@ -242,6 +262,38 @@ impl Document {
 }
 
 impl Node {
+    /// Items of a list; empty for an atom.
+    pub fn items(&self) -> &[Node] {
+        match self {
+            Node::List { items, .. } => items,
+            Node::Atom { .. } => &[],
+        }
+    }
+
+    /// First atom of a list, e.g. `net` for `(net 1 "A")`.
+    pub fn head(&self) -> Option<&str> {
+        self.arg(0)
+    }
+
+    /// Atom text at position `i` of a list (0 is the head), exactly as written.
+    pub fn arg(&self, i: usize) -> Option<&str> {
+        match self.items().get(i) {
+            Some(Node::Atom { text, .. }) => Some(text.as_str()),
+            _ => None,
+        }
+    }
+
+    /// First child list whose head is `head`.
+    pub fn child(&self, head: &str) -> Option<&Node> {
+        self.items().iter().find(|n| n.head() == Some(head))
+    }
+
+    /// All child lists whose head is `head`.
+    pub fn children<'a>(&'a self, head: &'a str) -> impl Iterator<Item = &'a Node> + 'a {
+        let items = self.items().iter();
+        items.filter(move |n| n.head() == Some(head))
+    }
+
     /// Same atoms in the same structure, ignoring whitespace.
     pub fn same_tree(&self, other: &Node) -> bool {
         match (self, other) {
@@ -366,6 +418,21 @@ mod tests {
         assert_eq!(text(&items(&board[2])[2]), r#""A \"quoted\" (x)""#);
         let at = items(&items(&board[3])[2]);
         assert_eq!(text(&at[1]), "0.1500000001");
+    }
+
+    #[test]
+    fn accessors_and_unquote() {
+        let doc = parse(SAMPLE).unwrap();
+        let board = &doc.nodes[0];
+        assert_eq!(board.head(), Some("kicad_pcb"));
+        let version = board.child("version").and_then(|v| v.arg(1));
+        assert_eq!(version, Some("20240108"));
+        assert_eq!(board.children("net").count(), 1);
+        assert_eq!(board.items()[0].head(), None);
+        let name = board.child("net").and_then(|n| n.arg(2)).map(unquote);
+        assert_eq!(name.as_deref(), Some("A \"quoted\" (x)"));
+        assert_eq!(unquote("plain"), "plain");
+        assert_eq!(unquote(r#""a\nb""#), "a\nb");
     }
 
     #[test]
