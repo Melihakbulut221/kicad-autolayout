@@ -1,4 +1,4 @@
-//! Engine core: geometry, placement, routing. Closed source; no GPL code linked.
+//! Engine core: geometry, placement, routing. Open source; no GPL code linked.
 
 pub use kal_ir as ir;
 
