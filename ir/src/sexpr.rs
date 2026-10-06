@@ -235,8 +235,8 @@ impl Document {
         out
     }
 
-    /// Write with canonical layout: one list per line, tab-indented, trailing newline.
-    /// Lists whose '(' was missing in the source get it back.
+    /// Write with canonical layout: one list per line, tab-indented, trailing newline, atom runs
+    /// wrapped at [`MAX_LINE`]. Lists whose '(' was missing in the source get it back.
     pub fn write_canonical(&self) -> String {
         let mut out = String::new();
         for node in &self.nodes {
