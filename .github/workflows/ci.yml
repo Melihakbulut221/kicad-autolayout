@@ -82,6 +82,24 @@ jobs:
               assert base.get(t, 0) == 0, f"{t} reported without rules"
               assert ruled.get(t, 0) >= 1, f"generated {t} rule not applied"
           EOF
+      - name: Generated netclasses are applied by KiCad
+        run: |
+          # Netclass HV (clearance 0.5 mm) assigned to HV1 by pattern, no .kicad_dru: the
+          # clearance error can only come from the generated project file.
+          mkdir -p out/netclass
+          cp bench/boards/rules/rules.kicad_pcb out/netclass/
+          python3 orchestrator/netclass.py bench/boards/rules/netclass.json \
+            bench/boards/rules/rules.kicad_pro -o out/netclass/rules.kicad_pro
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" \
+            kal-drc:${{ matrix.kicad }} out/netclass/rules.kicad_pcb out/netclass/drc \
+            >out/netclass/drc.log 2>&1 || true
+          tail -n 20 out/netclass/drc.log
+          python3 - <<'EOF'
+          import json
+          t = json.load(open("out/netclass/drc/summary.json"))["sections"]["violations"]["by_type"]
+          print("with netclasses:", t)
+          assert t.get("clearance", 0) >= 1, "generated netclass clearance not applied"
+          EOF
       - name: Upload DRC output
         if: always()
         uses: actions/upload-artifact@v4

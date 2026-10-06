@@ -3,7 +3,8 @@
 
 Only approved constraints are used (CLAUDE.md rule 6). The header records the schema version
 and a SHA-256 of the approved constraints (rule 7: ruleset hash). Types with no DRU
-equivalent (max_distance: placement; impedance: needs the stackup) are listed, not emitted.
+equivalent (max_distance: placement; impedance: needs the stackup; netclass: project file,
+orchestrator/netclass.py) are listed, not emitted.
 
 Usage:
     python3 orchestrator/dru.py constraints.json [-o board.kicad_dru]
@@ -24,6 +25,7 @@ import constraints as cs
 NOT_EXPRESSIBLE = {
     "max_distance": "placement constraint, used by the engine (phase 2)",
     "impedance": "needs the board stackup to become widths and gaps",
+    "netclass": "written to the project file by orchestrator/netclass.py",
 }
 
 

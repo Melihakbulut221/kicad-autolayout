@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "board": "rules",
+  "constraints": [
+    {"id": "hv-class", "type": "netclass", "name": "HV", "patterns": ["HV*"], "clearance_mm": 0.5, "track_width_mm": 0.3, "source": {"doc": "ci-rules-test (synthetic)", "page": 1}, "approved": true, "approved_by": "ci"},
+    {"id": "dq-class", "type": "netclass", "name": "DDR_DQ", "patterns": ["DQ*"], "clearance_mm": 0.1, "source": {"doc": "ci-rules-test (synthetic)", "page": 2}, "approved": false}
+  ]
+}

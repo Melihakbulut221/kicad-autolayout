@@ -156,6 +156,27 @@ def _impedance(c: dict) -> dict:
     return {"on": _selector(c, "on"), "ohms": float(ohms), "kind": kind}
 
 
+NETCLASS_SIZES = (
+    "clearance", "track_width", "via_diameter", "via_drill", "diff_pair_width", "diff_pair_gap",
+)  # fmt: skip
+
+
+def _netclass(c: dict) -> dict:
+    name = _text(c, "name")
+    if name == "Default":
+        raise Invalid("'name' must not be 'Default' (KiCad's built-in class)")
+    out = {"name": name, "patterns": _nets(c.get("patterns"), "patterns")}
+    for key in NETCLASS_SIZES:
+        v = _mm(c, f"{key}_mm", required=False)
+        if v is not None:
+            out[f"{key}_nm"] = v
+    if len(out) == 2:
+        raise Invalid(f"needs at least one of {', '.join(k + '_mm' for k in NETCLASS_SIZES)}")
+    if out.get("via_drill_nm", 0) >= out.get("via_diameter_nm", float("inf")):
+        raise Invalid("'via_drill_mm' must be smaller than 'via_diameter_mm'")
+    return out
+
+
 # type -> (allowed type-specific input fields, parser)
 TYPES = {
     "clearance": ({"a", "b", "min_mm"}, _clearance),
@@ -165,6 +186,7 @@ TYPES = {
     "max_length": ({"on", "max_mm"}, _max_length),
     "max_distance": ({"from", "to", "value_mm"}, _max_distance),
     "impedance": ({"on", "ohms", "kind"}, _impedance),
+    "netclass": ({"name", "patterns"} | {f"{k}_mm" for k in NETCLASS_SIZES}, _netclass),
 }
 
 
