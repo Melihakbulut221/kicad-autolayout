@@ -1,5 +1,6 @@
 /target
 /out
+/corpus
 __pycache__/
 .venv/
 *.kicad_prl
