@@ -1,0 +1,57 @@
+name: Corpus
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+  pull_request:
+    paths:
+      - "ir/**"
+      - "bench/**"
+      - "docker/**"
+      - "orchestrator/drc_*.py"
+      - ".github/workflows/corpus.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: corpus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  roundtrip:
+    name: External corpus (KiCad ${{ matrix.kicad }}, shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        kicad: ["9.0", "10.0"]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build kal-roundtrip
+        run: cargo build -q --release --locked --bin kal-roundtrip
+      - name: Build DRC image
+        run: docker build --build-arg KICAD_TAG=${{ matrix.kicad }} -f docker/Dockerfile -t kal-drc:${{ matrix.kicad }} .
+      - name: Fetch corpus shard
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 bench/fetch_corpus.py bench/corpus/manifest.json corpus/external --shard ${{ matrix.shard }}/4 \
+            || echo "::warning::some corpus boards failed to fetch, see fetch.tsv in the artifact"
+          cat corpus/external/fetch.tsv
+      - name: Round-trip + DRC compare
+        run: bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:${{ matrix.kicad }} out/roundtrip corpus/external
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-kicad-${{ matrix.kicad }}-shard-${{ matrix.shard }}
+          path: |
+            out/roundtrip/report.tsv
+            out/roundtrip/**/*.log
+            out/roundtrip/**/drc-diff.txt
+            corpus/external/lock.json
+            corpus/external/fetch.tsv

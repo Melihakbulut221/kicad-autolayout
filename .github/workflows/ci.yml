@@ -30,6 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 --version
       - run: python3 -m unittest discover -s orchestrator/tests -q
+      - run: python3 -m unittest discover -s bench/tests -q
 
   drc:
     name: DRC smoke (KiCad ${{ matrix.kicad }})

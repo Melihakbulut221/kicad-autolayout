@@ -9,6 +9,8 @@
 # On a DRC mismatch the original is checked a second time: if that run matches the canonical
 # copy the board counts as `same`; if the original disagrees with itself the board is
 # `nondet` (KiCad is not reproducible on it; reported, not a failure); otherwise `fail`.
+# Each DRC run is limited to KAL_DRC_TIMEOUT seconds (default 900); an original that times
+# out is `orig-timeout` (reported, not a failure), a canonical copy that times out is `fail`.
 # Usage: bench/roundtrip.sh <kal-roundtrip> <kal-drc image> <out dir> <dir>...
 # Board and out paths must be relative to $PWD (mounted at /work in the DRC container).
 # Writes <out>/report.tsv; exit 0 all pass, 1 any failure, 2 usage error or no boards.
@@ -32,10 +34,14 @@ mkdir -p "$out"
 report="$out/report.tsv"
 printf 'board\tpreserve\tcanonical\tdrc\n' >"$report"
 
-# drc <board> <out dir>: prints drc.sh's exit code (0 clean, 1 violations, 2 failure).
+# drc <board> <out dir>: prints drc.sh's exit code (0 clean, 1 violations, 2 failure,
+# 3 timeout). Zones are checked as saved: both files carry the same fills, and a refill
+# (KiCad 10) only adds run time and nondeterminism to the comparison.
+drc_timeout=${KAL_DRC_TIMEOUT:-900}
 drc() {
   local rc=0
-  docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" "$image" \
+  docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" \
+    -e KAL_DRC_REFILL=0 -e KAL_DRC_TIMEOUT="$drc_timeout" "$image" \
     "$1" "$2" >"$2.log" 2>&1 || rc=$?
   echo "$rc"
 }
@@ -52,7 +58,10 @@ longest_line() {
 
 failures=0
 shown=0
+n=0
 for b in "${boards[@]}"; do
+  n=$((n + 1))
+  echo "[$n/${#boards[@]}] $b"
   id=$(printf '%s' "${b%.kicad_pcb}" | tr -c 'A-Za-z0-9._-' '_')
   d="$out/$id"
   stem="${b%.kicad_pcb}"
@@ -72,7 +81,9 @@ for b in "${boards[@]}"; do
   drc_result=skip
   if [ "$canonical" = ok ]; then
     rc_orig=$(drc "$b" "$d/drc-orig")
-    if [ "$rc_orig" -ge 2 ]; then
+    if [ "$rc_orig" -eq 3 ]; then
+      drc_result=orig-timeout
+    elif [ "$rc_orig" -ge 2 ]; then
       drc_result=orig-error
     else
       rc_canon=$(drc "$canon.kicad_pcb" "$d/drc-canon")
@@ -126,9 +137,9 @@ awk -F'\t' 'NR > 1 { p[$2]++; c[$3]++; r[$4]++ }
     for (k in c) printf "  canonical %s: %d\n", k, c[k]
     for (k in r) printf "  drc %s: %d\n", k, r[k]
   }' "$report"
-if grep -qE $'\t(fail|orig-error|nondet)$' "$report"; then
+if grep -qE $'\t(fail|orig-error|orig-timeout|nondet)$' "$report"; then
   echo "problem boards (first 20):"
-  grep -E $'\t(fail|orig-error|nondet)' "$report" | head -n 20 || true
+  grep -E $'\t(fail|orig-error|orig-timeout|nondet)$' "$report" | head -n 20 || true
 fi
 if [ "$failures" -ne 0 ]; then
   exit 1
