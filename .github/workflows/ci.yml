@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain (from rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - run: cargo fmt --all --check
+      - run: cargo clippy -q --all-targets --locked -- -D warnings
+      - run: cargo test -q --locked
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 --version
+      - run: python3 -m unittest discover -s orchestrator/tests -q
+
+  drc:
+    name: DRC smoke (KiCad ${{ matrix.kicad }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kicad: ["9.0", "10.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --build-arg KICAD_TAG=${{ matrix.kicad }} -f docker/Dockerfile -t kal-drc:${{ matrix.kicad }} .
+      - name: Run DRC on smoke board
+        run: |
+          mkdir -p out
+          set +e
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" \
+            kal-drc:${{ matrix.kicad }} bench/boards/smoke/smoke.kicad_pcb out | tee out/summary.txt
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "drc exit code: $rc"
+          # The smoke board has one deliberate clearance violation.
+          test "$rc" -eq 1
+          grep -q "clearance" out/summary.txt
+          python3 -c "import json; s=json.load(open('out/summary.json')); assert s['sections']['violations']['by_type'].get('clearance', 0) >= 1, s"
+      - name: Upload DRC output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drc-kicad-${{ matrix.kicad }}
+          path: out/
