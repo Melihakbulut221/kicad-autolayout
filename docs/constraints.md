@@ -54,3 +54,10 @@ from the project's Default class), its patterns in `netclass_patterns`. A class 
 same name are replaced, the rest of the project is kept. A `{"netclass": ...}` selector in other
 constraints can then name it. KiCad checks netclass clearance in DRC; netclass track width and via
 sizes are routing defaults, so minimums belong in `track_width` constraints.
+
+## Extraction scoring
+`python3 orchestrator/extract_eval.py predicted.json labeled.json [--min-precision 0.9]` scores LLM
+output against a human-labeled constraint file for the same datasheet. A prediction counts when
+type and all type-specific fields equal a labeled constraint after normalization (nm values; net
+sets without order); ids, approval and notes are ignored, a wrong `source.page` is reported as a
+source error. Phase 1 target: precision >= 90%.
