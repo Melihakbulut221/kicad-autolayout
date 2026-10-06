@@ -1,19 +1,19 @@
 # CLAUDE.md — kicad-autolayout (working name)
 
-Product: automatic PCB placement/routing for KiCad. LLM = orchestrator only. Geometry/optimization engines do the layout. KiCad's own DRC is the judge.
+Product: automatic PCB placement/routing for KiCad. LLM = orchestrator only. Geometry/optimization engines do the layout. KiCad's own DRC is the judge. The whole project (engine, plugin, orchestrator) is open source in a public repo.
 
 ## Hard rules (never break)
 1. LLM never outputs coordinates, tracks or vias. LLM outputs only schema-validated JSON (constraints, rules, floorplan hints, review notes).
 2. Final correctness = `kicad-cli pcb drc --format json --refill-zones`. Own DRC is a fast conservative pre-filter only.
 3. Internal unit = integer nanometers (matches KiCad). No floats in the geometry core.
-4. No GPL code linked/embedded in the closed engine. Freerouting runs only as a separate process (CLI/REST). Plugin is thin, open source (MIT).
+4. Until the project license is chosen: only permissive dependencies (MIT/Apache-2.0/BSD/BSL); no GPL code linked into the engine. Freerouting runs only as a separate process (CLI/REST).
 5. No new code on SWIG/`pcbnew` (removed in KiCad 11). Use IPC (`kipy`, MIT) or file-level S-expression IO.
 6. Every datasheet-derived constraint carries a source (doc + page) and needs human approval before use.
 7. Deterministic runs: log seed, engine version, KiCad version, ruleset hash.
 
 ## Architecture
 ```
-KiCad GUI <-IPC(kipy)-> thin plugin (open) <-> orchestrator service
+KiCad GUI <-IPC(kipy)-> thin plugin <-> orchestrator service
 orchestrator: LLM layer (constraints/rules/floorplan/review) -> engine core -> kicad-cli DRC loop
 engine core (Rust): Clipper2 + R-tree, placement (CP-SAT + SA), routing (Freerouting first, own router later)
 server side (no GUI): S-expression read/write + kicad-cli. Desktop: kipy.
@@ -22,7 +22,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 
 ## Stack (decided)
 - Core: Rust (cargo workspace: `core` = kal-core, `ir` = kal-ir). Python only for orchestration, prototypes, evaluators.
-- Geometry: Clipper2 (BSL-1.0), rstar or Boost R-tree. Shapely/GEOS only in analysis/benchmarks. No CGAL (GPL) unless commercial license bought.
+- Geometry: Clipper2 (BSL-1.0), rstar or Boost R-tree. Shapely/GEOS only in analysis/benchmarks. No CGAL (GPL).
 - Placement: OR-Tools CP-SAT for constrained sub-problems (decoupling, connectors, keep-outs); simulated annealing for global; legalizer after.
 - Routing: Freerouting (separate process, DSN/SES) -> own global (negotiated congestion) + detailed (gridless A*, rip-up/reroute) router in phase 3.
 - File IO: own lossless S-expression tree in Rust (`kal_ir::sexpr`, no third-party parser; kiutils is GPL-3.0). Unchanged nodes keep their original bytes; generated nodes use the canonical layout.
@@ -89,5 +89,6 @@ Next phases (do not start early):
 4. Mid complexity (4-6 layers, BGA fanout). High-speed DDR/RF/HDI stays assistant-only.
 
 ## Open questions (resolve, then delete from here)
-- Final product name and license of plugin (MIT vs GPL-compatible) — needs lawyer + KiCad team confirmation for the commercial service model.
+- Final product name.
+- Project license for the whole open-source repo (e.g. Apache-2.0 vs MIT vs GPL-3.0); decides whether GPL dependencies become possible (rule 4).
 - Cloud vs on-prem first.
