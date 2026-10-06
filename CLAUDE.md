@@ -34,7 +34,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 /ir          schema + converters
 /orchestrator LLM layer, constraint extraction, DRC loop
 /plugin      kipy plugin (executable runtime, plugin.json)
-/bench       boards, metrics, runners
+/bench       boards, metrics, runners; corpus/manifest.json = external board corpus
 /docker      kicad-cli DRC/ERC runner image
 /docs        details; read on demand, not by default
 ```
@@ -48,8 +48,9 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Compare two DRC JSONs: `python3 orchestrator/drc_compare.py a.json b.json`; exit 0 identical, 1 different, 2 bad input.
 - Round-trip one file: `cargo run -q --bin kal-roundtrip -- <in> <out> [--canonical]`; exit 0 ok, 1 mismatch, 2 error.
 - Round-trip corpus: `bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:10.0 out/roundtrip <dirs>...` (relative paths); report in `out/roundtrip/report.tsv`.
-- Test orchestrator: `python3 -m unittest discover -s orchestrator/tests -q`
-- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke and round-trip corpus on KiCad 9.0 + 10.0). Verify changes there, read failures with job logs (tail only).
+- Fetch external corpus: `python3 bench/fetch_corpus.py bench/corpus/manifest.json corpus/external [--shard i/n] [--only ID ...]`; writes `lock.json` (resolved commits) and `fetch.tsv`.
+- Test orchestrator / bench: `python3 -m unittest discover -s orchestrator/tests -q`, `python3 -m unittest discover -s bench/tests -q`
+- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke and demo round-trip on KiCad 9.0 + 10.0); `.github/workflows/corpus.yml` (external corpus, 2 KiCad versions x 4 shards; manual, weekly, PRs touching ir/bench/docker). Verify changes there, read failures with job logs (tail only).
 - Bench: `TODO`
 
 ## KiCad facts (verify before relying)
@@ -64,6 +65,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Constraint schema example: `{"type":"max_distance","from":"C12","to":"U1.7","value_mm":2.0,"source":"datasheet p.14"}`
 - Errors: typed results, no panics in engine on bad boards; return structured failure reason.
 - Benchmark metrics: DRC errors, unconnected, completion %, wirelength, vias, area, rule violations (decoupling, diff pair skew), wall time, human cleanup minutes.
+- Corpus boards are fetched, never committed. Their license is in the manifest; using a board for anything beyond testing (rules, constraints, shipped data) needs a license check first.
 
 ## Token-efficient workflow (for Claude)
 - Grep/Glob first, then Read only the needed line ranges. Never read whole large files or whole boards.
