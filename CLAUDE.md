@@ -1,12 +1,12 @@
 # CLAUDE.md — kicad-autolayout (working name)
 
-Product: automatic PCB placement/routing for KiCad. LLM = orchestrator only. Geometry/optimization engines do the layout. KiCad's own DRC is the judge. The whole project (engine, plugin, orchestrator) is open source in a public repo.
+Product: automatic PCB placement/routing for KiCad. LLM = orchestrator only. Geometry/optimization engines do the layout. KiCad's own DRC is the judge. The whole project (engine, plugin, orchestrator) is open source under Apache-2.0 in a public repo.
 
 ## Hard rules (never break)
 1. LLM never outputs coordinates, tracks or vias. LLM outputs only schema-validated JSON (constraints, rules, floorplan hints, review notes).
 2. Final correctness = `kicad-cli pcb drc --format json --refill-zones`. Own DRC is a fast conservative pre-filter only.
 3. Internal unit = integer nanometers (matches KiCad). No floats in the geometry core.
-4. Until the project license is chosen: only permissive dependencies (MIT/Apache-2.0/BSD/BSL); no GPL code linked into the engine. Freerouting runs only as a separate process (CLI/REST).
+4. License is Apache-2.0. Dependencies must be Apache-2.0 compatible (MIT, Apache-2.0, BSD, BSL-1.0, ISC, Zlib); no GPL/LGPL/AGPL code linked or vendored. GPL tools (Freerouting) run only as a separate process (CLI/REST).
 5. No new code on SWIG/`pcbnew` (removed in KiCad 11). Use IPC (`kipy`, MIT) or file-level S-expression IO.
 6. Every datasheet-derived constraint carries a source (doc + page) and needs human approval before use.
 7. Deterministic runs: log seed, engine version, KiCad version, ruleset hash.
@@ -90,5 +90,4 @@ Next phases (do not start early):
 
 ## Open questions (resolve, then delete from here)
 - Final product name.
-- Project license for the whole open-source repo (e.g. Apache-2.0 vs MIT vs GPL-3.0); decides whether GPL dependencies become possible (rule 4).
 - Cloud vs on-prem first.
