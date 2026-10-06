@@ -1,0 +1,46 @@
+name: Corpus pin
+
+# Resolve every unpinned board in bench/corpus/manifest.json to a commit, check its .kicad_pcb
+# paths exist there, and push the pinned manifest. Run on main it pushes a new branch
+# corpus-pin/<run id> (open a PR from it); run on any other branch it commits to that branch.
+on:
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "Re-resolve boards that are already pinned"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: corpus-pin-${{ github.ref }}
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 bench/pin_corpus.py bench/corpus/manifest.json ${{ inputs.refresh && '--refresh' || '' }}
+      - name: Push pinned manifest
+        if: ${{ !cancelled() }}
+        run: |
+          if git diff --quiet; then
+            echo "manifest unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$GITHUB_REF_NAME" = "${{ github.event.repository.default_branch }}" ]; then
+            branch="corpus-pin/${GITHUB_RUN_ID}"
+            git checkout -b "$branch"
+          else
+            branch="$GITHUB_REF_NAME"
+          fi
+          git commit -am "corpus: pin manifest commits (corpus-pin run ${GITHUB_RUN_ID})"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "pushed to $branch"
