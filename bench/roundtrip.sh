@@ -67,6 +67,7 @@ for b in "${boards[@]}"; do
   stem="${b%.kicad_pcb}"
   canon="$stem.kal-canonical"
   mkdir -p "$d"
+  printf '%s\n' "$b" >"$d/board.path"
   : >"$d/errors.log"
 
   preserve=ok

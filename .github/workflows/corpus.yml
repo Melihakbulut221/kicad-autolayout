@@ -31,8 +31,8 @@ jobs:
         shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
-      - name: Build kal-roundtrip
-        run: cargo build -q --release --locked --bin kal-roundtrip
+      - name: Build kal-roundtrip and kal-summary
+        run: cargo build -q --release --locked --bin kal-roundtrip --bin kal-summary
       - name: Build DRC image
         run: docker build --build-arg KICAD_TAG=${{ matrix.kicad }} -f docker/Dockerfile -t kal-drc:${{ matrix.kicad }} .
       - name: Fetch corpus shard
@@ -44,6 +44,11 @@ jobs:
           cat corpus/external/fetch.tsv
       - name: Round-trip + DRC compare
         run: bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:${{ matrix.kicad }} out/roundtrip corpus/external
+      - name: Metrics
+        if: ${{ !cancelled() }}
+        run: |
+          python3 bench/metrics.py collect target/release/kal-summary out/roundtrip -o out/metrics >out/metrics.md
+          { echo "### Metrics (KiCad ${{ matrix.kicad }}, shard ${{ matrix.shard }}/4)"; cat out/metrics.md; } >>"$GITHUB_STEP_SUMMARY"
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
@@ -51,6 +56,8 @@ jobs:
           name: corpus-kicad-${{ matrix.kicad }}-shard-${{ matrix.shard }}
           path: |
             out/roundtrip/report.tsv
+            out/metrics.jsonl
+            out/metrics.tsv
             out/roundtrip/**/*.log
             out/roundtrip/**/drc-diff.txt
             corpus/external/lock.json
