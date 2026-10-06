@@ -50,12 +50,13 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Compare two DRC JSONs: `python3 orchestrator/drc_compare.py a.json b.json`; exit 0 identical, 1 different, 2 bad input.
 - Validate constraints: `python3 orchestrator/constraints.py <file> [--require-approved] [--json]`; exit 0 valid, 1 invalid, 2 unreadable.
 - Rules from constraints: `python3 orchestrator/dru.py <constraints.json> -o <board>.kicad_dru` (approved only; KiCad loads `<project>.kicad_dru` next to `<project>.kicad_pro`); exit 0 ok, 1 invalid, 2 unreadable.
+- Netclasses from constraints: `python3 orchestrator/netclass.py <constraints.json> <board>.kicad_pro [-o out.kicad_pro]` (approved `netclass` constraints into `net_settings`; in place without `-o`); exit 0 ok, 1 invalid, 2 unreadable.
 - Board summary: `cargo run -q --bin kal-summary -- <board.kicad_pcb>` prints JSON (`kal-board-summary/1`); exit 0 ok, 2 error.
 - Round-trip one file: `cargo run -q --bin kal-roundtrip -- <in> <out> [--canonical]`; exit 0 ok, 1 mismatch, 2 error.
 - Round-trip corpus: `bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:10.0 out/roundtrip <dirs>...` (relative paths); report in `out/roundtrip/report.tsv`.
 - Fetch external corpus: `python3 bench/fetch_corpus.py bench/corpus/manifest.json corpus/external [--shard i/n] [--only ID ...]`; writes `lock.json` (resolved commits) and `fetch.tsv`.
 - Test orchestrator / bench: `python3 -m unittest discover -s orchestrator/tests -q`, `python3 -m unittest discover -s bench/tests -q`
-- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke, generated-rules check, demo board summaries and round-trip on KiCad 9.0 + 10.0); `.github/workflows/corpus.yml` (external corpus, 2 KiCad versions x 4 shards; manual, weekly, PRs touching ir/bench/docker). Verify changes there, read failures with job logs (tail only).
+- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke, generated-rules and netclass checks, demo board summaries and round-trip on KiCad 9.0 + 10.0); `.github/workflows/corpus.yml` (external corpus, 2 KiCad versions x 4 shards; manual, weekly, PRs touching ir/bench/docker). Verify changes there, read failures with job logs (tail only).
 - Bench metrics: `python3 bench/metrics.py collect target/release/kal-summary out/roundtrip -o out/metrics` after `bench/roundtrip.sh` (one row per board: layers, nets, routed nets, vias, track length nm, board size nm, DRC errors/warnings, unconnected); the Corpus workflow writes `metrics.tsv` per shard and a table in the job summary.
 - Pin external corpus: `python3 bench/pin_corpus.py bench/corpus/manifest.json [--refresh]`; in CI dispatch `corpus-pin.yml` (main → `corpus-pin/<run>` branch, other branch → commits there). Every board must be pinned (bench test).
 
@@ -88,7 +89,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 Phase 0 leftovers done: 106 corpus boards, all pinned, corpus workflow green on KiCad 9.0 and 10.0 (round-trip byte-identical on all; DRC equal or KiCad-nondeterministic).
 
 Phase 1 goal: datasheet -> constraints -> `.kicad_dru`/netclasses; LLM design review on a JSON board summary. Target: extraction precision >= 90% on an internal labeled set.
-Order: (1) constraint schema + validator, (2) approved constraints -> `.kicad_dru`, checked with kicad-cli (netclass definitions later), (3) board summary JSON from `kal_ir::sexpr`, (4) LLM extraction + review (needs an API key secret and a human-labeled set).
+Order: (1) constraint schema + validator, (2) approved constraints -> `.kicad_dru` and `.kicad_pro` netclasses, checked with kicad-cli, (3) board summary JSON from `kal_ir::sexpr`, (4) LLM extraction + review (needs an API key secret and a human-labeled set).
 
 Later phases (do not start early):
 2. Semi-auto placement: decoupling/sub-circuit (CP-SAT), block floorplan, one-click Freerouting trial.

@@ -1,7 +1,8 @@
 # Design constraints (schema v1)
 
 The only output the LLM layer may produce besides review notes (CLAUDE.md rule 1).
-Validator: `orchestrator/constraints.py`. Rules generator: `orchestrator/dru.py`.
+Validator: `orchestrator/constraints.py`. Rules generator: `orchestrator/dru.py`. Netclasses:
+`orchestrator/netclass.py`.
 Example: `orchestrator/tests/fixtures/constraints_example.json`.
 
 ```json
@@ -41,6 +42,15 @@ source and approver. Selectors become `A.NetName == '...'` / `A.NetClass == '...
 | `max_length` | `on` selector, `max_mm` | `length (max)` |
 | `max_distance` | `from`, `to` references, `value_mm` | none: placement constraint for the engine (phase 2) |
 | `impedance` | `on` selector, `ohms`, `kind` (`single` / `differential`) | none yet: needs the stackup to become widths/gaps |
+| `netclass` | `name` (not `Default`), `patterns` (KiCad netclass patterns, e.g. `DDR_DQ*`), at least one of `clearance_mm`, `track_width_mm`, `via_diameter_mm`, `via_drill_mm` (< diameter), `diff_pair_width_mm`, `diff_pair_gap_mm` | none: `netclass.py` writes it to the `.kicad_pro` |
 
 Diff pair width and gap are routing targets (`opt`), not DRC minimums; impedance will be checked
-separately once stackups are in the IR. Netclass definitions (`.kicad_pro`) are not generated yet.
+separately once stackups are in the IR.
+
+## Netclasses
+`python3 orchestrator/netclass.py constraints.json board.kicad_pro [-o out.kicad_pro]` merges every
+approved `netclass` into `net_settings`: the class goes in `classes` (fields not given are copied
+from the project's Default class), its patterns in `netclass_patterns`. A class or patterns of the
+same name are replaced, the rest of the project is kept. A `{"netclass": ...}` selector in other
+constraints can then name it. KiCad checks netclass clearance in DRC; netclass track width and via
+sizes are routing defaults, so minimums belong in `track_width` constraints.
