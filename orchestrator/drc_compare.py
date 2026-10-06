@@ -2,7 +2,9 @@
 """Compare the violations in two `kicad-cli pcb drc --format json` reports.
 
 Report metadata (date, source, kicad_version) is ignored; violations are compared as
-multisets per section. Exit 0 identical, 1 different, 2 bad input.
+multisets per section. Unconnected items are compared without their items: KiCad reports one
+entry per missing ratsnest connection, but which of several equally near pads it names is not
+reproducible between runs on the same file. Exit 0 identical, 1 different, 2 bad input.
 
 Usage:
     python3 orchestrator/drc_compare.py a/drc.json b/drc.json [--top 10]
@@ -19,10 +21,11 @@ from pathlib import Path
 from drc_summary import SECTIONS, DrcReportError, load_report
 
 
-def violation_key(v: dict) -> tuple:
+def violation_key(v: dict, with_items: bool = True) -> tuple:
     items = tuple(
         (i.get("description", ""), json.dumps(i.get("pos"), sort_keys=True))
         for i in (v.get("items") or [])
+        if with_items
     )
     return (
         v.get("type", ""),
@@ -37,8 +40,9 @@ def compare(a: dict, b: dict) -> dict:
     """Per differing section: (only in a, only in b) as Counters of violation keys."""
     diff = {}
     for name in SECTIONS:
-        ca = Counter(violation_key(v) for v in a.get(name) or [])
-        cb = Counter(violation_key(v) for v in b.get(name) or [])
+        with_items = name != "unconnected_items"
+        ca = Counter(violation_key(v, with_items) for v in a.get(name) or [])
+        cb = Counter(violation_key(v, with_items) for v in b.get(name) or [])
         if ca != cb:
             diff[name] = (ca - cb, cb - ca)
     return diff

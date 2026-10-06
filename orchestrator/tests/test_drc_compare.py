@@ -50,8 +50,19 @@ class CompareTest(unittest.TestCase):
 
     def test_moved_item_is_a_difference(self):
         other = copy.deepcopy(self.report)
-        other["unconnected_items"][0]["items"][0]["pos"]["x"] = 6
+        other["violations"][0]["items"][0]["pos"]["x"] = 6
         self.assertEqual(run(SAMPLE, self.write("b.json", other))[0], 1)
+
+    def test_unconnected_items_compare_without_items(self):
+        other = copy.deepcopy(self.report)
+        item = other["unconnected_items"][0]["items"][0]
+        item["description"], item["pos"]["x"] = "Pad 3 [NET1] of R2", 6
+        code, out = run(SAMPLE, self.write("b.json", other))
+        self.assertEqual((code, out.strip()), (0, "identical"))
+        other["unconnected_items"].append(copy.deepcopy(other["unconnected_items"][0]))
+        code, out = run(SAMPLE, self.write("c.json", other))
+        self.assertEqual(code, 1)
+        self.assertIn("unconnected_items: 0 only in a, 1 only in b", out)
 
     def test_bad_input_exit_2(self):
         self.assertEqual(run(SAMPLE, Path(self.tmp.name) / "missing.json")[0], 2)
