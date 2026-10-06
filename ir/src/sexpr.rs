@@ -44,7 +44,11 @@ pub enum ParseErrorKind {
 
 impl ParseError {
     fn at(src: &str, byte: usize, kind: ParseErrorKind) -> ParseError {
-        let line = src.as_bytes()[..byte].iter().filter(|&&b| b == b'\n').count() + 1;
+        let line = src.as_bytes()[..byte]
+            .iter()
+            .filter(|&&b| b == b'\n')
+            .count()
+            + 1;
         ParseError { kind, byte, line }
     }
 }
@@ -97,7 +101,11 @@ pub fn parse(src: &str) -> Result<Document, ParseError> {
         let ws = src[ws_start..i].to_string();
         if i == bytes.len() {
             if let Some(frame) = stack.last() {
-                return Err(ParseError::at(src, frame.open, ParseErrorKind::UnclosedList));
+                return Err(ParseError::at(
+                    src,
+                    frame.open,
+                    ParseErrorKind::UnclosedList,
+                ));
             }
             let trailing = ws;
             return Ok(Document { nodes, trailing });
@@ -177,7 +185,11 @@ impl Document {
     /// Same atoms in the same structure, ignoring whitespace.
     pub fn same_tree(&self, other: &Document) -> bool {
         self.nodes.len() == other.nodes.len()
-            && self.nodes.iter().zip(&other.nodes).all(|(a, b)| a.same_tree(b))
+            && self
+                .nodes
+                .iter()
+                .zip(&other.nodes)
+                .all(|(a, b)| a.same_tree(b))
     }
 }
 
