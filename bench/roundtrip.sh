@@ -45,6 +45,11 @@ same_drc() {
   python3 orchestrator/drc_compare.py "$1/drc.json" "$2/drc.json" >"${3:-/dev/null}"
 }
 
+# longest_line <file>: length of the longest line.
+longest_line() {
+  awk '{ if (length > m) m = length } END { print m + 0 }' "$1"
+}
+
 failures=0
 shown=0
 for b in "${boards[@]}"; do
@@ -104,6 +109,7 @@ for b in "${boards[@]}"; do
         head -n 12 "$d/drc-diff.txt"
       elif [ "$drc_result" = fail ]; then
         tail -n 5 "$d/drc-canon.log"
+        echo "  longest line: original $(longest_line "$b"), canonical $(longest_line "$canon.kicad_pcb")"
       fi
       if [ -f "$d/drc-orig-vs-orig.txt" ]; then
         echo "  original vs original:"
