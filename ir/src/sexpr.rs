@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn canonical_wraps_long_atom_runs() {
-        let atoms = vec!["0123456789"; 50].join(" ");
+        let atoms = ["0123456789"; 50].join(" ");
         let doc = parse(&format!("(data {atoms})")).unwrap();
         let canonical = doc.write_canonical();
         assert!(canonical.lines().count() > 1);
