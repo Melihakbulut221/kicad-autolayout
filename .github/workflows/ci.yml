@@ -56,6 +56,32 @@ jobs:
           test "$rc" -eq 1
           grep -q "clearance" out/summary.txt
           python3 -c "import json; s=json.load(open('out/summary.json')); assert s['sections']['violations']['by_type'].get('clearance', 0) >= 1, s"
+      - name: Generated rules are applied by KiCad
+        run: |
+          drc() {
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" \
+              kal-drc:${{ matrix.kicad }} "$1" "$2" >"$2.log" 2>&1 || true
+            tail -n 20 "$2.log"
+          }
+          # Without rules: no clearance or track_width errors.
+          mkdir -p out/rules-base out/rules
+          cp bench/boards/rules/rules.kicad_pcb bench/boards/rules/rules.kicad_pro out/rules-base/
+          drc out/rules-base/rules.kicad_pcb out/rules-base/drc
+          # With rules generated from the constraints: both must appear.
+          cp bench/boards/rules/rules.kicad_pcb bench/boards/rules/rules.kicad_pro out/rules/
+          python3 orchestrator/dru.py bench/boards/rules/constraints.json -o out/rules/rules.kicad_dru
+          drc out/rules/rules.kicad_pcb out/rules/drc
+          python3 - <<'EOF'
+          import json
+          def types(d):
+              return json.load(open(f"{d}/summary.json"))["sections"]["violations"]["by_type"]
+          base, ruled = types("out/rules-base/drc"), types("out/rules/drc")
+          print("without rules:", base)
+          print("with rules:   ", ruled)
+          for t in ("clearance", "track_width"):
+              assert base.get(t, 0) == 0, f"{t} reported without rules"
+              assert ruled.get(t, 0) >= 1, f"generated {t} rule not applied"
+          EOF
       - name: Upload DRC output
         if: always()
         uses: actions/upload-artifact@v4

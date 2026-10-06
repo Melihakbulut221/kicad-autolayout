@@ -26,7 +26,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Placement: OR-Tools CP-SAT for constrained sub-problems (decoupling, connectors, keep-outs); simulated annealing for global; legalizer after.
 - Routing: Freerouting (separate process, DSN/SES) -> own global (negotiated congestion) + detailed (gridless A*, rip-up/reroute) router in phase 3.
 - File IO: own lossless S-expression tree in Rust (`kal_ir::sexpr`, no third-party parser; kiutils is GPL-3.0). Unchanged nodes keep their original bytes; generated nodes use the canonical layout.
-- Constraints: schema v1 in `docs/constraints.md`, validator `orchestrator/constraints.py` (stdlib only). mm in, integer nm out.
+- Constraints: schema v1 in `docs/constraints.md`, validator `orchestrator/constraints.py`, `.kicad_dru` generator `orchestrator/dru.py` (stdlib only). mm in, integer nm out.
 - Write boards with line breaks (kicad-cli 10.0.x fails on very large single-line files).
 
 ## Repo layout (proposed)
@@ -48,11 +48,12 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Summarize DRC JSON: `python3 orchestrator/drc_summary.py out/drc.json [--top 10] [--json] [--fail-on error|warning|never]`; exit 0 clean, 1 violations, 2 bad input.
 - Compare two DRC JSONs: `python3 orchestrator/drc_compare.py a.json b.json`; exit 0 identical, 1 different, 2 bad input.
 - Validate constraints: `python3 orchestrator/constraints.py <file> [--require-approved] [--json]`; exit 0 valid, 1 invalid, 2 unreadable.
+- Rules from constraints: `python3 orchestrator/dru.py <constraints.json> -o <board>.kicad_dru` (approved only; KiCad loads `<project>.kicad_dru` next to `<project>.kicad_pro`); exit 0 ok, 1 invalid, 2 unreadable.
 - Round-trip one file: `cargo run -q --bin kal-roundtrip -- <in> <out> [--canonical]`; exit 0 ok, 1 mismatch, 2 error.
 - Round-trip corpus: `bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:10.0 out/roundtrip <dirs>...` (relative paths); report in `out/roundtrip/report.tsv`.
 - Fetch external corpus: `python3 bench/fetch_corpus.py bench/corpus/manifest.json corpus/external [--shard i/n] [--only ID ...]`; writes `lock.json` (resolved commits) and `fetch.tsv`.
 - Test orchestrator / bench: `python3 -m unittest discover -s orchestrator/tests -q`, `python3 -m unittest discover -s bench/tests -q`
-- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke and demo round-trip on KiCad 9.0 + 10.0); `.github/workflows/corpus.yml` (external corpus, 2 KiCad versions x 4 shards; manual, weekly, PRs touching ir/bench/docker). Verify changes there, read failures with job logs (tail only).
+- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke, generated-rules check and demo round-trip on KiCad 9.0 + 10.0); `.github/workflows/corpus.yml` (external corpus, 2 KiCad versions x 4 shards; manual, weekly, PRs touching ir/bench/docker). Verify changes there, read failures with job logs (tail only).
 - Bench: `TODO`
 
 ## KiCad facts (verify before relying)
@@ -84,7 +85,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 Started by owner decision before phase 0's exit criterion was met. Phase 0 leftovers, run in parallel: grow the corpus to 100 boards, pin corpus commits, get the corpus workflow green.
 
 Phase 1 goal: datasheet -> constraints -> `.kicad_dru`/netclasses; LLM design review on a JSON board summary. Target: extraction precision >= 90% on an internal labeled set.
-Order: (1) constraint schema + validator [done], (2) approved constraints -> `.kicad_dru`/netclasses, checked with kicad-cli, (3) board summary JSON from `kal_ir::sexpr`, (4) LLM extraction + review (needs an API key secret and a human-labeled set).
+Order: (1) constraint schema + validator, (2) approved constraints -> `.kicad_dru`, checked with kicad-cli (netclass definitions later), (3) board summary JSON from `kal_ir::sexpr`, (4) LLM extraction + review (needs an API key secret and a human-labeled set).
 
 Later phases (do not start early):
 2. Semi-auto placement: decoupling/sub-circuit (CP-SAT), block floorplan, one-click Freerouting trial.
