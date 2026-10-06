@@ -22,10 +22,21 @@ BASE = {
 class ManifestTest(unittest.TestCase):
     def test_repo_manifest_is_valid(self):
         boards = fetch_corpus.load_manifest(MANIFEST)
-        self.assertGreaterEqual(len(boards), 30)
+        self.assertGreaterEqual(len(boards), 100)
         tags = {t for b in boards for t in b["interfaces"]}
-        for needed in ("ddr4", "ddr5", "lpddr4", "pcie", "usb3", "10gbe", "mipi-csi"):
-            self.assertIn(needed, tags)
+        needed = ("ddr4", "ddr5", "lpddr4", "lpddr5", "pcie", "thunderbolt", "usb3", "10gbe")
+        for tag in needed + ("mipi-csi",):
+            self.assertIn(tag, tags)
+
+    def test_repo_manifest_is_pinned(self):
+        boards = fetch_corpus.load_manifest(MANIFEST)
+        hexdigits = set("0123456789abcdef")
+        unpinned = [
+            b["id"]
+            for b in boards
+            if not (len(b.get("commit", "")) == 40 and set(b["commit"]) <= hexdigits)
+        ]
+        self.assertEqual(unpinned, [], "run the Corpus pin workflow (corpus-pin.yml)")
 
     def test_shards_partition_boards(self):
         boards = fetch_corpus.load_manifest(MANIFEST)
