@@ -18,8 +18,15 @@ python3 bench/fetch_corpus.py bench/corpus/manifest.json corpus/external [--shar
 bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:10.0 out/roundtrip corpus/external
 ```
 CI: `.github/workflows/corpus.yml` (manual, weekly, and on PRs touching ir/bench/docker).
-`corpus/external/lock.json` records the resolved commit of every board; copy those into
-`commit` fields to pin.
+`corpus/external/lock.json` records the resolved commit of every board.
+
+## Pin
+Every board should carry a `commit`, so corpus results compare like with like.
+`python3 bench/pin_corpus.py bench/corpus/manifest.json [--refresh] [--only ID ...]` resolves
+unpinned boards (all with `--refresh`), checks their `.kicad_pcb` paths exist at that commit,
+and rewrites the manifest. In CI: run the **Corpus pin** workflow (`corpus-pin.yml`); on main
+it pushes a `corpus-pin/<run id>` branch to open a PR from, on another branch it commits
+there. New boards go in unpinned and get pinned by that workflow.
 
 ## Interface coverage (37 boards)
 | interface | boards | good first target |
