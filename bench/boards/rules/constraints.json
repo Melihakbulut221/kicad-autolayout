@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "board": "rules",
+  "constraints": [
+    {"id": "hv-clear", "type": "clearance", "a": {"nets": ["HV1"]}, "min_mm": 0.5, "source": {"doc": "ci-rules-test (synthetic)", "page": 1}, "approved": true, "approved_by": "ci"},
+    {"id": "hv-width", "type": "track_width", "on": {"nets": ["HV1"]}, "min_mm": 0.3, "source": {"doc": "ci-rules-test (synthetic)", "page": 1}, "approved": true, "approved_by": "ci"},
+    {"id": "gnd-len", "type": "max_length", "on": {"nets": ["GND"]}, "max_mm": 5, "source": {"doc": "ci-rules-test (synthetic)", "page": 1}, "approved": true, "approved_by": "ci"},
+    {"id": "usb-dp", "type": "diff_pair", "p": "USB_P", "n": "USB_N", "width_mm": 0.2, "gap_mm": 0.15, "max_uncoupled_mm": 1, "max_skew_mm": 0.1, "source": {"doc": "ci-rules-test (synthetic)", "page": 2}, "approved": true, "approved_by": "ci"},
+    {"id": "dq-match", "type": "length_match", "nets": ["DQ0", "DQ1"], "tolerance_mm": 0.1, "target_mm": 20, "source": {"doc": "ci-rules-test (synthetic)", "page": 2}, "approved": true, "approved_by": "ci"},
+    {"id": "c1-near-u1", "type": "max_distance", "from": "C1", "to": "U1.1", "value_mm": 2, "source": {"doc": "ci-rules-test (synthetic)", "page": 3}, "approved": true, "approved_by": "ci"}
+  ]
+}
