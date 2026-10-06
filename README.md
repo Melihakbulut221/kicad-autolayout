@@ -1,6 +1,6 @@
 # kicad-autolayout (working name)
 
-Automatic PCB placement and routing for KiCad. An LLM orchestrates; geometry and
+Open-source automatic PCB placement and routing for KiCad. An LLM orchestrates; geometry and
 optimization engines do the layout; KiCad's own DRC is the judge.
 
 > **Status: phase 0 (foundation).** There is no placement or routing yet. What exists today is
@@ -26,7 +26,7 @@ The full list is in [`CLAUDE.md`](CLAUDE.md). The ones that shape the code:
 - The LLM never outputs coordinates, tracks or vias, only schema-validated JSON (constraints, rules, floorplan hints, review notes).
 - Final correctness is `kicad-cli pcb drc`. Any in-house DRC is only a fast pre-filter.
 - Geometry uses integer nanometers, as KiCad does. There are no floats in the geometry core.
-- No GPL code is linked into the engine. Freerouting runs only as a separate process.
+- Until the project license is chosen, only permissive dependencies are used and no GPL code is linked. Freerouting runs only as a separate process.
 - No new code on SWIG/`pcbnew`. The tool talks to KiCad through IPC (`kipy`) or reads and writes files directly.
 - Every run is reproducible: it logs the seed, engine version, KiCad version and ruleset hash.
 
@@ -105,7 +105,6 @@ The boards are a regression and reference set, not training data. See
 
 ## License
 
-Not decided yet. The plugin is planned as MIT, and the license for the engine and the
-service model is still an open question (see `CLAUDE.md`). Until a `LICENSE` file is added,
-no license is granted for the code in this repository. Corpus boards keep their own licenses,
-as listed in the manifest.
+The whole project is open source; the license is not chosen yet (see `CLAUDE.md`).
+Until a `LICENSE` file is added, no license is granted for the code in this repository.
+Corpus boards keep their own licenses, as listed in the manifest.
