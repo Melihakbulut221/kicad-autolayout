@@ -11,6 +11,7 @@ the engine is algorithmic and the LLM never outputs geometry (CLAUDE.md hard rul
 - Testing (round-trip, DRC, metrics) is fine for every entry.
 - Using a board as a source for rules, constraints or anything shipped needs a full license
   check first; GPL / CC-BY-SA / CERN-OHL-S entries are test-only until reviewed.
+- `unknown` (11 boards, no LICENSE file) and CC-BY-NC (1 board) are test-only, full stop.
 
 ## Run
 ```sh
@@ -21,29 +22,35 @@ CI: `.github/workflows/corpus.yml` (manual, weekly, and on PRs touching ir/bench
 `corpus/external/lock.json` records the resolved commit of every board.
 
 ## Pin
-Every board should carry a `commit`, so corpus results compare like with like.
-`python3 bench/pin_corpus.py bench/corpus/manifest.json [--refresh] [--only ID ...]` resolves
-unpinned boards (all with `--refresh`), checks their `.kicad_pcb` paths exist at that commit,
-and rewrites the manifest. In CI: run the **Corpus pin** workflow (`corpus-pin.yml`); on main
-it pushes a `corpus-pin/<run id>` branch to open a PR from, on another branch it commits
-there. New boards go in unpinned and get pinned by that workflow.
+Every board carries a `commit` (enforced by `bench/tests`), so corpus results compare like
+with like. `python3 bench/pin_corpus.py bench/corpus/manifest.json [--refresh] [--only ID ...]`
+resolves unpinned boards (all with `--refresh`), checks their `.kicad_pcb` paths exist at
+that commit, and rewrites the manifest. In CI: run the **Corpus pin** workflow
+(`corpus-pin.yml`); on main it pushes a `corpus-pin/<run id>` branch to open a PR from, on
+another branch it commits there. New boards go in unpinned and get pinned by that workflow
+before the PR merges.
 
-## Interface coverage (37 boards)
-| interface | boards | good first target |
+## Interface coverage (106 boards)
+| interface | boards | examples / good first target |
 |---|---|---|
-| DDR3 / DDR3L | kintex-410t, butterstick, orangecrab, a64-olinuxino, zynqpcb | orangecrab (DDR3 x16) |
-| DDR4 | rdimm-ddr4-tester | |
-| DDR5 | sodimm-ddr5-tester, rdimm-ddr5-tester, ddr5-testbed | ddr5-testbed (6 layers) |
-| LPDDR4 / LPDDR5 | lpddr4-test-board, lpddr4-testbed, imx8mp-som, lpddr5-testbed | lpddr4-testbed (6 layers) |
-| PCIe / Thunderbolt | m2-pcie, m2-oculink, oculink-pcie, 3x thunderbolt, com-express-7, cm4, jetson-orin, openpcie backplane, picoevb, ... | m2-pcie-adapter (4 layers, passive) |
-| USB 3.x / USB-C | jetson-orin, kria-k26, com-express-7, jetson-agx-thor | |
-| 10G Ethernet / SFP | com-express-7, jetson-agx-thor, thunderbolt-10gbe | |
-| Gigabit Ethernet | most baseboards | |
-| MIPI CSI / DSI, LVDS, GMSL | ov5640-dual-camera, gmsl-serializer, cm4-lvds-adapter, jetson/kria/cm4 baseboards | ov5640-dual-camera |
-| HDMI / DisplayPort | hdmi-edid-debug, many baseboards | hdmi-edid-debug |
-| FPGA SerDes | kintex-410t (FMC+), butterstick (SYZYGY), picoevb (GTP), thor (FMC+) | |
-| SI test structures | signal-integrity-test-board | |
+| DDR3 / DDR3L | 25 | orangecrab (DDR3 x16, first target), trellisboard, marble, h616-ddr3, zynq SoMs and SDRs, numato-opsis, dc-scm |
+| DDR4 | 1 | rdimm-ddr4-tester |
+| DDR5 | 3 | ddr5-testbed (6 layers, first target), sodimm/rdimm testers |
+| LPDDR4 / LPDDR5 | 7 / 1 | lpddr4-testbed (first target), polarfire-som, arvsom, osm-l-bmc-som, h616-lpddr4, lpddr5-testbed |
+| PCIe / Thunderbolt | 36 / 3 | m2-pcie-adapter (4 layers, passive, first target), trellisboard, kintex-pcie, job-pcie-switch, 3x thunderbolt |
+| USB 3.x / USB-C | 10 / 20 | jetson-orin, kria-k26, system76-launch, syzygy-txr4-usb3 |
+| 10G Ethernet / SFP | 4 | com-express-7, jetson-agx-thor, thunderbolt-10gbe, oculink-10gbe |
+| Gigabit Ethernet | 36 | most baseboards and SoMs |
+| MIPI CSI / DSI, LVDS, GMSL | 25 / 8 / 6 / 2 | ov5640-dual-camera, hdmi/sdi/cvbs-mipi bridges, gmsl adapters |
+| HDMI / DisplayPort | 32 / 7 | hdmi-edid-debug (first target), numato-opsis, glider |
+| FPGA SerDes / SATA / SDI | 18 | kintex-410t, butterstick, picoevb, fmc-sata, granit, sdi adapters |
+| RF | 9 | hackrf-one, hermes-lite2, zynq + AD936x SDRs |
+| SI test structures | 1 | signal-integrity-test-board |
 
-Gaps: no JESD204, no explicit SGMII, no DDR4 SO-DIMM, no standalone USB3 device board.
-KiCad 4/5-format boards (orangecrab, picoevb, Olimex, zynqpcb) also test legacy-format loading.
-Unverified or rejected candidates are listed in the PR that added this file.
+KiCad formats: 5 (21 boards incl. one KiCad 4), 6 (18), 7 (17), 8 (8), 9 (33), 10 (5),
+unknown (2, incl. the 2013-era Numato Opsis file). Legacy formats also test loading; a board
+KiCad 9 cannot open (e.g. KiCad 10 format) is reported as `orig-error`, not a failure.
+
+Gaps: no JESD204, one DDR4 board, one LPDDR5 board, few 10GbE boards. Open KiCad boards with
+these are rare outside Antmicro; candidates welcome (verify the `.kicad_pcb` path and
+license, add unpinned, run Corpus pin).

@@ -2,9 +2,11 @@
 """Compare the violations in two `kicad-cli pcb drc --format json` reports.
 
 Report metadata (date, source, kicad_version) is ignored; violations are compared as
-multisets per section. Unconnected items are compared without their items: KiCad reports one
-entry per missing ratsnest connection, but which of several equally near pads it names is not
-reproducible between runs on the same file. Exit 0 identical, 1 different, 2 bad input.
+multisets per section. Some entries are compared without their items, because KiCad picks
+the items or the marker position arbitrarily and does not reproduce the pick between runs on
+the same file: unconnected items (which of several equally near pads), silkscreen overlap and
+copper connection width (where along the overlap or narrow neck). Their count, type, severity
+and description still have to match. Exit 0 identical, 1 different, 2 bad input.
 
 Usage:
     python3 orchestrator/drc_compare.py a/drc.json b/drc.json [--top 10]
@@ -19,6 +21,9 @@ from collections import Counter
 from pathlib import Path
 
 from drc_summary import SECTIONS, DrcReportError, load_report
+
+# Violation types whose items/positions are an arbitrary pick (see module doc).
+ARBITRARY_ITEMS = {"silk_overlap", "connection_width"}
 
 
 def violation_key(v: dict, with_items: bool = True) -> tuple:
@@ -40,9 +45,13 @@ def compare(a: dict, b: dict) -> dict:
     """Per differing section: (only in a, only in b) as Counters of violation keys."""
     diff = {}
     for name in SECTIONS:
-        with_items = name != "unconnected_items"
-        ca = Counter(violation_key(v, with_items) for v in a.get(name) or [])
-        cb = Counter(violation_key(v, with_items) for v in b.get(name) or [])
+
+        def key(v: dict) -> tuple:
+            arbitrary = name == "unconnected_items" or v.get("type") in ARBITRARY_ITEMS
+            return violation_key(v, not arbitrary)
+
+        ca = Counter(key(v) for v in a.get(name) or [])
+        cb = Counter(key(v) for v in b.get(name) or [])
         if ca != cb:
             diff[name] = (ca - cb, cb - ca)
     return diff
