@@ -42,6 +42,8 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Build: `cargo build`
 - Test (quiet): `cargo test -q 2>&1 | tail -n 30`
 - DRC one board: `kicad-cli pcb drc --format json --severity-error --refill-zones -o out/drc.json <board>`; exit code 5 = violations. Always parse the JSON; do not trust exit code alone.
+- Summarize DRC JSON: `python3 orchestrator/drc_summary.py out/drc.json [--top 10] [--json] [--fail-on error|warning|never]`; exit 0 clean, 1 violations, 2 bad input.
+- Test orchestrator: `python3 -m unittest discover -s orchestrator/tests -q`
 - Bench: `TODO`
 
 ## KiCad facts (verify before relying)
