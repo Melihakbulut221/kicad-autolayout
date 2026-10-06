@@ -3,6 +3,9 @@
 #   preserve:  output is byte-identical to the input
 #   canonical: the re-laid-out file parses to the same tree
 #   drc:       DRC (kal-drc image) on the canonical copy equals DRC on the original
+# The canonical copy is written next to the original (<stem>.kal-canonical.kicad_pcb, with
+# same-stem project files) so both DRC runs see the same project directory, including
+# ${KIPRJMOD}-relative libraries.
 # Usage: bench/roundtrip.sh <kal-roundtrip> <kal-drc image> <out dir> <dir>...
 # Board and out paths must be relative to $PWD (mounted at /work in the DRC container).
 # Writes <out>/report.tsv; exit 0 all pass, 1 any failure, 2 usage error or no boards.
@@ -17,7 +20,7 @@ image="$2"
 out="$3"
 shift 3
 
-mapfile -t boards < <(find "$@" -type f -name '*.kicad_pcb' | sort)
+mapfile -t boards < <(find "$@" -type f -name '*.kicad_pcb' -not -name '*.kal-canonical.kicad_pcb' | sort)
 if [ ${#boards[@]} -eq 0 ]; then
   echo "roundtrip.sh: no .kicad_pcb files under $*" >&2
   exit 2
@@ -38,20 +41,19 @@ failures=0
 for b in "${boards[@]}"; do
   id=$(printf '%s' "${b%.kicad_pcb}" | tr -c 'A-Za-z0-9._-' '_')
   d="$out/$id"
-  base=$(basename "$b")
   stem="${b%.kicad_pcb}"
-  mkdir -p "$d/canon"
+  canon="$stem.kal-canonical"
+  mkdir -p "$d"
+  : >"$d/errors.log"
 
   preserve=ok
   "$bin" "$b" "$d/preserved.kicad_pcb" 2>>"$d/errors.log" || preserve=fail
 
   canonical=ok
-  "$bin" "$b" "$d/canon/$base" --canonical 2>>"$d/errors.log" || canonical=fail
-  # Same project settings next to the canonical copy, so DRC uses the same rules.
+  "$bin" "$b" "$canon.kicad_pcb" --canonical 2>>"$d/errors.log" || canonical=fail
   for ext in kicad_pro kicad_dru; do
-    if [ -f "$stem.$ext" ]; then cp "$stem.$ext" "$d/canon/${base%.kicad_pcb}.$ext"; fi
+    if [ -f "$stem.$ext" ]; then cp "$stem.$ext" "$canon.$ext"; fi
   done
-  if [ -f "$(dirname "$b")/fp-lib-table" ]; then cp "$(dirname "$b")/fp-lib-table" "$d/canon/"; fi
 
   drc_result=skip
   if [ "$canonical" = ok ]; then
@@ -59,7 +61,7 @@ for b in "${boards[@]}"; do
     if [ "$rc_orig" -ge 2 ]; then
       drc_result=orig-error
     else
-      rc_canon=$(drc "$d/canon/$base" "$d/drc-canon")
+      rc_canon=$(drc "$canon.kicad_pcb" "$d/drc-canon")
       if [ "$rc_canon" -ge 2 ]; then
         drc_result=fail
       elif python3 orchestrator/drc_compare.py "$d/drc-orig/drc.json" "$d/drc-canon/drc.json" \
@@ -74,6 +76,15 @@ for b in "${boards[@]}"; do
   printf '%s\t%s\t%s\t%s\n' "$b" "$preserve" "$canonical" "$drc_result" >>"$report"
   if [ "$preserve" = fail ] || [ "$canonical" = fail ] || [ "$drc_result" = fail ]; then
     failures=$((failures + 1))
+    if [ "$failures" -le 5 ]; then
+      echo "--- $b: preserve=$preserve canonical=$canonical drc=$drc_result"
+      tail -n 5 "$d/errors.log"
+      if [ -f "$d/drc-diff.txt" ]; then
+        head -n 12 "$d/drc-diff.txt"
+      elif [ "$drc_result" = fail ]; then
+        tail -n 5 "$d/drc-canon.log"
+      fi
+    fi
   fi
 done
 
@@ -85,8 +96,8 @@ awk -F'\t' 'NR > 1 { p[$2]++; c[$3]++; r[$4]++ }
     for (k in r) printf "  drc %s: %d\n", k, r[k]
   }' "$report"
 if [ "$failures" -ne 0 ] || grep -q $'\torig-error$' "$report"; then
-  echo "problem boards (first 10):"
-  grep -E $'\t(fail|orig-error)' "$report" | head -n 10 || true
+  echo "problem boards (first 20):"
+  grep -E $'\t(fail|orig-error)' "$report" | head -n 20 || true
 fi
 if [ "$failures" -ne 0 ]; then
   exit 1
