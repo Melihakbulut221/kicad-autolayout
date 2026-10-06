@@ -21,9 +21,17 @@ mkdir -p "$out"
 # Determinism: always log the KiCad version next to the report.
 kicad-cli version | tee "$out/kicad_version.txt"
 
+drc_args=(--format json --severity-all --exit-code-violations)
+# --refill-zones exists from KiCad 10; 9.x rejects it as an unknown argument.
+drc_help=$(kicad-cli pcb drc --help 2>&1 || true)
+if grep -q -- '--refill-zones' <<<"$drc_help"; then
+  drc_args+=(--refill-zones)
+else
+  echo "drc.sh: kicad-cli has no --refill-zones; zones are checked as saved" >&2
+fi
+
 set +e
-kicad-cli pcb drc --format json --severity-all --refill-zones --exit-code-violations \
-  -o "$out/drc.json" "$board" >"$out/kicad-cli.log" 2>&1
+kicad-cli pcb drc "${drc_args[@]}" -o "$out/drc.json" "$board" >"$out/kicad-cli.log" 2>&1
 rc=$?
 set -e
 # 0 = clean, 5 = violations found; anything else is a kicad-cli failure.

@@ -42,7 +42,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 ## Commands (fill in as they exist)
 - Build: `cargo build`
 - Test (quiet): `cargo test -q 2>&1 | tail -n 30`
-- DRC one board: `kicad-cli pcb drc --format json --severity-error --refill-zones --exit-code-violations -o out/drc.json <board>`; exit code 5 = violations (only with `--exit-code-violations`). Always parse the JSON; do not trust exit code alone.
+- DRC one board: `kicad-cli pcb drc --format json --severity-error --refill-zones --exit-code-violations -o out/drc.json <board>`; exit code 5 = violations (only with `--exit-code-violations`). `--refill-zones` is KiCad 10+ only. Always parse the JSON; do not trust exit code alone.
 - DRC in Docker (preferred): `docker build --build-arg KICAD_TAG=9.0 -f docker/Dockerfile -t kal-drc:9.0 .` then `docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" kal-drc:9.0 <board> out`; writes `out/drc.json`, `out/summary.json`, `out/kicad_version.txt`; exit 0 clean, 1 violations, 2 failure.
 - Summarize DRC JSON: `python3 orchestrator/drc_summary.py out/drc.json [--top 10] [--json] [--fail-on error|warning|never]`; exit 0 clean, 1 violations, 2 bad input.
 - Test orchestrator: `python3 -m unittest discover -s orchestrator/tests -q`
@@ -53,6 +53,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - KiCad 10.0.x is current stable. IPC API on 9/10 needs a running GUI; headless IPC + export are KiCad 11 (release date unconfirmed).
 - `(severity exclusion)` custom rules may appear without `excluded` key in DRC JSON (known bug).
 - `kicad-cli sch erc` can exit 0 with violations: parse JSON.
+- `kicad-cli pcb drc --refill-zones` does not exist in 9.x (verified 9.0.9: "Unknown argument"); 9.x checks zones as saved. Verified present in 10.0.6.
 - Test matrix: KiCad 9, 10, 11-nightly when available. Round-trip (open/save/DRC) on 100 open boards must show zero diff.
 
 ## Conventions
