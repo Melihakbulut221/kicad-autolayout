@@ -15,13 +15,13 @@ Product: automatic PCB placement/routing for KiCad. LLM = orchestrator only. Geo
 ```
 KiCad GUI <-IPC(kipy)-> thin plugin (open) <-> orchestrator service
 orchestrator: LLM layer (constraints/rules/floorplan/review) -> engine core -> kicad-cli DRC loop
-engine core (Rust/C++): Clipper2 + R-tree, placement (CP-SAT + SA), routing (Freerouting first, own router later)
+engine core (Rust): Clipper2 + R-tree, placement (CP-SAT + SA), routing (Freerouting first, own router later)
 server side (no GUI): S-expression read/write + kicad-cli. Desktop: kipy.
 ```
 Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both KiCad paths fill the IR. Keep IR independent of KiCad version.
 
 ## Stack (decided)
-- Core: Rust (preferred) or C++. Python only for orchestration, prototypes, evaluators.
+- Core: Rust (cargo workspace: `core` = kal-core, `ir` = kal-ir). Python only for orchestration, prototypes, evaluators.
 - Geometry: Clipper2 (BSL-1.0), rstar or Boost R-tree. Shapely/GEOS only in analysis/benchmarks. No CGAL (GPL) unless commercial license bought.
 - Placement: OR-Tools CP-SAT for constrained sub-problems (decoupling, connectors, keep-outs); simulated annealing for global; legalizer after.
 - Routing: Freerouting (separate process, DSN/SES) -> own global (negotiated congestion) + detailed (gridless A*, rip-up/reroute) router in phase 3.
@@ -39,8 +39,8 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 ```
 
 ## Commands (fill in as they exist)
-- Build: `TODO`
-- Test (quiet): `TODO`
+- Build: `cargo build`
+- Test (quiet): `cargo test -q 2>&1 | tail -n 30`
 - DRC one board: `kicad-cli pcb drc --format json --severity-error --refill-zones -o out/drc.json <board>`; exit code 5 = violations. Always parse the JSON; do not trust exit code alone.
 - Bench: `TODO`
 
@@ -79,5 +79,4 @@ Next phases (do not start early):
 
 ## Open questions (resolve, then delete from here)
 - Final product name and license of plugin (MIT vs GPL-compatible) — needs lawyer + KiCad team confirmation for the commercial service model.
-- Rust vs C++ for core.
 - Cloud vs on-prem first.

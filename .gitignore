@@ -1,0 +1,7 @@
+/target
+/out
+__pycache__/
+.venv/
+*.kicad_prl
+*-backups/
+fp-info-cache
