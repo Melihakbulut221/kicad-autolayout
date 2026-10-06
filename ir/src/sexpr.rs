@@ -12,11 +12,13 @@ use std::fmt;
 pub enum Node {
     /// A symbol, number or quoted string, exactly as written (quotes and escapes included).
     Atom { ws: String, text: String },
-    /// `( items )`; `end` is the whitespace before the closing paren.
+    /// `( items )`; `end` is the whitespace before the closing paren. `implicit` is true when
+    /// the source had no '(' (a known KiCad writer bug, see `opens_implicit_list`).
     List {
         ws: String,
         items: Vec<Node>,
         end: String,
+        implicit: bool,
     },
 }
 
@@ -70,6 +72,7 @@ struct Frame {
     open: usize,
     ws: String,
     items: Vec<Node>,
+    implicit: bool,
 }
 
 fn is_ws(b: u8) -> bool {
@@ -85,6 +88,31 @@ fn push(stack: &mut [Frame], nodes: &mut Vec<Node>, node: Node) {
         Some(frame) => frame.items.push(node),
         None => nodes.push(node),
     }
+}
+
+fn list_head(node: &Node) -> Option<&str> {
+    match node {
+        Node::List { items, .. } => match items.first() {
+            Some(Node::Atom { text, .. }) => Some(text.as_str()),
+            _ => None,
+        },
+        Node::Atom { .. } => None,
+    }
+}
+
+/// KiCad 8/9 wrote teardrop settings as `(curved_edges no)filter_ratio 0.9)`, without the '('
+/// before `filter_ratio`. KiCad reads such files, so exactly this case opens a list whose '('
+/// is missing.
+fn opens_implicit_list(stack: &[Frame], text: &str) -> bool {
+    let Some(frame) = stack.last() else {
+        return false;
+    };
+    let parent = match frame.items.first() {
+        Some(Node::Atom { text, .. }) => text.as_str(),
+        _ => "",
+    };
+    let previous = frame.items.last().and_then(list_head);
+    text == "filter_ratio" && parent == "teardrops" && previous == Some("curved_edges")
 }
 
 /// Parse a whole file. Iterative, so deeply nested input cannot overflow the stack.
@@ -116,6 +144,7 @@ pub fn parse(src: &str) -> Result<Document, ParseError> {
                     open: i,
                     ws,
                     items: Vec::new(),
+                    implicit: false,
                 });
                 i += 1;
             }
@@ -128,6 +157,7 @@ pub fn parse(src: &str) -> Result<Document, ParseError> {
                     ws: frame.ws,
                     items: frame.items,
                     end: ws,
+                    implicit: frame.implicit,
                 };
                 push(&mut stack, &mut nodes, list);
             }
@@ -155,7 +185,20 @@ pub fn parse(src: &str) -> Result<Document, ParseError> {
                     i += 1;
                 }
                 let text = src[start..i].to_string();
-                push(&mut stack, &mut nodes, Node::Atom { ws, text });
+                if opens_implicit_list(&stack, &text) {
+                    let atom = Node::Atom {
+                        ws: String::new(),
+                        text,
+                    };
+                    stack.push(Frame {
+                        open: start,
+                        ws,
+                        items: vec![atom],
+                        implicit: true,
+                    });
+                } else {
+                    push(&mut stack, &mut nodes, Node::Atom { ws, text });
+                }
             }
         }
     }
@@ -173,6 +216,7 @@ impl Document {
     }
 
     /// Write with canonical layout: one list per line, tab-indented, trailing newline.
+    /// Lists whose '(' was missing in the source get it back.
     pub fn write_canonical(&self) -> String {
         let mut out = String::new();
         for node in &self.nodes {
@@ -211,9 +255,16 @@ impl Node {
                 out.push_str(ws);
                 out.push_str(text);
             }
-            Node::List { ws, items, end } => {
+            Node::List {
+                ws,
+                items,
+                end,
+                implicit,
+            } => {
                 out.push_str(ws);
-                out.push('(');
+                if !*implicit {
+                    out.push('(');
+                }
                 for item in items {
                     item.write_into(out);
                 }
@@ -325,5 +376,22 @@ mod tests {
         assert_eq!((err.kind, err.line), (ParseErrorKind::UnclosedList, 1));
         let err = parse("(a \"x\\\")").unwrap_err();
         assert_eq!(err.kind, ParseErrorKind::UnterminatedString);
+    }
+
+    #[test]
+    fn accepts_kicad_teardrop_filter_ratio_bug() {
+        // As written by KiCad 8/9: the '(' before filter_ratio is missing.
+        let src = "(pad (teardrops (curved_edges no)filter_ratio 0.9) (enabled yes)))";
+        let doc = parse(src).unwrap();
+        assert_eq!(doc.write(), src);
+        let teardrops = &items(&doc.nodes[0])[1];
+        let ratio = &items(teardrops)[2];
+        assert_eq!(text(&items(ratio)[0]), "filter_ratio");
+        let canonical = doc.write_canonical();
+        assert!(canonical.contains("\t\t(filter_ratio 0.9)\n"));
+        assert!(parse(&canonical).unwrap().same_tree(&doc));
+        // Anywhere else a stray ')' is still an error.
+        let err = parse("(pad (x no)filter_ratio 0.9))").unwrap_err();
+        assert_eq!(err.kind, ParseErrorKind::UnexpectedClose);
     }
 }
