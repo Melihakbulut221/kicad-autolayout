@@ -6,8 +6,8 @@
 # The canonical copy is written next to the original (<stem>.kal-canonical.kicad_pcb, with
 # same-stem project files) so both DRC runs see the same project directory, including
 # ${KIPRJMOD}-relative libraries.
-# On a DRC mismatch the original is checked a second time: if that run matches the canonical
-# copy the board counts as `same`; if the original disagrees with itself the board is
+# On a DRC mismatch both files are checked a second time: if any original run matches any
+# canonical run the board counts as `same`; if either file disagrees with itself the board is
 # `nondet` (KiCad is not reproducible on it; reported, not a failure); otherwise `fail`.
 # Each DRC run is limited to KAL_DRC_TIMEOUT seconds (default 900); an original that times
 # out is `orig-timeout` (reported, not a failure), a canonical copy that times out is `fail`.
@@ -94,10 +94,13 @@ for b in "${boards[@]}"; do
       else
         drc_result=fail
         rc_again=$(drc "$b" "$d/drc-orig2")
-        if [ "$rc_again" -lt 2 ]; then
-          if same_drc "$d/drc-orig2" "$d/drc-canon"; then
+        rc_canon2=$(drc "$canon.kicad_pcb" "$d/drc-canon2")
+        if [ "$rc_again" -lt 2 ] && [ "$rc_canon2" -lt 2 ]; then
+          if same_drc "$d/drc-orig2" "$d/drc-canon" || same_drc "$d/drc-orig" "$d/drc-canon2" ||
+            same_drc "$d/drc-orig2" "$d/drc-canon2"; then
             drc_result=same
-          elif ! same_drc "$d/drc-orig" "$d/drc-orig2" "$d/drc-orig-vs-orig.txt"; then
+          elif ! same_drc "$d/drc-orig" "$d/drc-orig2" "$d/drc-orig-vs-orig.txt" ||
+            ! same_drc "$d/drc-canon" "$d/drc-canon2" "$d/drc-canon-vs-canon.txt"; then
             drc_result=nondet
           fi
         fi
@@ -125,6 +128,10 @@ for b in "${boards[@]}"; do
       if [ -f "$d/drc-orig-vs-orig.txt" ]; then
         echo "  original vs original:"
         head -n 6 "$d/drc-orig-vs-orig.txt"
+      fi
+      if [ -f "$d/drc-canon-vs-canon.txt" ]; then
+        echo "  canonical vs canonical:"
+        head -n 6 "$d/drc-canon-vs-canon.txt"
       fi
     fi
   fi

@@ -64,6 +64,15 @@ class CompareTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("unconnected_items: 0 only in a, 1 only in b", out)
 
+    def test_silk_overlap_compares_without_items(self):
+        other = copy.deepcopy(self.report)
+        silk = next(v for v in other["violations"] if v["type"] == "silk_overlap")
+        silk["items"] = [{"description": "Text on F.Silkscreen", "pos": {"x": 7, "y": 8}}]
+        code, out = run(SAMPLE, self.write("b.json", other))
+        self.assertEqual((code, out.strip()), (0, "identical"))
+        silk["description"] = "Silkscreen clearance"
+        self.assertEqual(run(SAMPLE, self.write("c.json", other))[0], 1)
+
     def test_bad_input_exit_2(self):
         self.assertEqual(run(SAMPLE, Path(self.tmp.name) / "missing.json")[0], 2)
 
