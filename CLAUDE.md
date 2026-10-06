@@ -56,7 +56,8 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Fetch external corpus: `python3 bench/fetch_corpus.py bench/corpus/manifest.json corpus/external [--shard i/n] [--only ID ...]`; writes `lock.json` (resolved commits) and `fetch.tsv`.
 - Test orchestrator / bench: `python3 -m unittest discover -s orchestrator/tests -q`, `python3 -m unittest discover -s bench/tests -q`
 - CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke, generated-rules check, demo board summaries and round-trip on KiCad 9.0 + 10.0); `.github/workflows/corpus.yml` (external corpus, 2 KiCad versions x 4 shards; manual, weekly, PRs touching ir/bench/docker). Verify changes there, read failures with job logs (tail only).
-- Bench: `TODO`
+- Bench metrics: `python3 bench/metrics.py collect target/release/kal-summary out/roundtrip -o out/metrics` after `bench/roundtrip.sh` (one row per board: layers, nets, routed nets, vias, track length nm, board size nm, DRC errors/warnings, unconnected); the Corpus workflow writes `metrics.tsv` per shard and a table in the job summary.
+- Pin external corpus: `python3 bench/pin_corpus.py bench/corpus/manifest.json [--refresh]`; in CI dispatch `corpus-pin.yml` (main → `corpus-pin/<run>` branch, other branch → commits there). Every board must be pinned (bench test).
 
 ## KiCad facts (verify before relying)
 - KiCad 10.0.x is current stable. IPC API on 9/10 needs a running GUI; headless IPC + export are KiCad 11 (release date unconfirmed).
@@ -84,7 +85,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Do not add dependencies, abstractions or features beyond the current phase.
 
 ## Current phase: 1 (rules + review)
-Started by owner decision before phase 0's exit criterion was met. Phase 0 leftovers, run in parallel: grow the corpus to 100 boards, pin corpus commits, get the corpus workflow green.
+Phase 0 leftovers done: 106 corpus boards, all pinned, corpus workflow green on KiCad 9.0 and 10.0 (round-trip byte-identical on all; DRC equal or KiCad-nondeterministic).
 
 Phase 1 goal: datasheet -> constraints -> `.kicad_dru`/netclasses; LLM design review on a JSON board summary. Target: extraction precision >= 90% on an internal labeled set.
 Order: (1) constraint schema + validator, (2) approved constraints -> `.kicad_dru`, checked with kicad-cli (netclass definitions later), (3) board summary JSON from `kal_ir::sexpr`, (4) LLM extraction + review (needs an API key secret and a human-labeled set).
