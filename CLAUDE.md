@@ -25,7 +25,7 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - Geometry: Clipper2 (BSL-1.0), rstar or Boost R-tree. Shapely/GEOS only in analysis/benchmarks. No CGAL (GPL) unless commercial license bought.
 - Placement: OR-Tools CP-SAT for constrained sub-problems (decoupling, connectors, keep-outs); simulated annealing for global; legalizer after.
 - Routing: Freerouting (separate process, DSN/SES) -> own global (negotiated congestion) + detailed (gridless A*, rip-up/reroute) router in phase 3.
-- File IO: pin one S-expression library (kiutils or KiCadFiles), round-trip tested per KiCad version.
+- File IO: own lossless S-expression tree in Rust (`kal_ir::sexpr`, no third-party parser; kiutils is GPL-3.0). Unchanged nodes keep their original bytes; generated nodes use the canonical layout.
 - Write boards with line breaks (kicad-cli 10.0.x fails on very large single-line files).
 
 ## Repo layout (proposed)
@@ -45,8 +45,11 @@ Own IR (JSON/protobuf): footprints, pads, nets, netclasses, rules, stackup. Both
 - DRC one board: `kicad-cli pcb drc --format json --severity-error --refill-zones --exit-code-violations -o out/drc.json <board>`; exit code 5 = violations (only with `--exit-code-violations`). `--refill-zones` is KiCad 10+ only. Always parse the JSON; do not trust exit code alone.
 - DRC in Docker (preferred): `docker build --build-arg KICAD_TAG=9.0 -f docker/Dockerfile -t kal-drc:9.0 .` then `docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/work" kal-drc:9.0 <board> out`; writes `out/drc.json`, `out/summary.json`, `out/kicad_version.txt`; exit 0 clean, 1 violations, 2 failure.
 - Summarize DRC JSON: `python3 orchestrator/drc_summary.py out/drc.json [--top 10] [--json] [--fail-on error|warning|never]`; exit 0 clean, 1 violations, 2 bad input.
+- Compare two DRC JSONs: `python3 orchestrator/drc_compare.py a.json b.json`; exit 0 identical, 1 different, 2 bad input.
+- Round-trip one file: `cargo run -q --bin kal-roundtrip -- <in> <out> [--canonical]`; exit 0 ok, 1 mismatch, 2 error.
+- Round-trip corpus: `bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:10.0 out/roundtrip <dirs>...` (relative paths); report in `out/roundtrip/report.tsv`.
 - Test orchestrator: `python3 -m unittest discover -s orchestrator/tests -q`
-- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke on KiCad 9.0 + 10.0). Verify changes there, read failures with job logs (tail only).
+- CI: `.github/workflows/ci.yml` (rust fmt/clippy/test, python unittest, DRC smoke and round-trip corpus on KiCad 9.0 + 10.0). Verify changes there, read failures with job logs (tail only).
 - Bench: `TODO`
 
 ## KiCad facts (verify before relying)

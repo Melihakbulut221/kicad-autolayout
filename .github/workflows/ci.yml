@@ -61,3 +61,42 @@ jobs:
         with:
           name: drc-kicad-${{ matrix.kicad }}
           path: out/
+
+  roundtrip:
+    name: Round-trip corpus (KiCad ${{ matrix.kicad }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        kicad: ["9.0", "10.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build kal-roundtrip
+        run: cargo build -q --release --locked --bin kal-roundtrip
+      - name: Build DRC image
+        run: docker build --build-arg KICAD_TAG=${{ matrix.kicad }} -f docker/Dockerfile -t kal-drc:${{ matrix.kicad }} .
+      - name: Collect corpus (KiCad demos from the image + bench boards)
+        run: |
+          mkdir -p corpus
+          cid=$(docker create kal-drc:${{ matrix.kicad }})
+          docker cp "$cid:/usr/share/kicad/demos" corpus/kicad-demos || true
+          docker rm "$cid" >/dev/null
+          if [ ! -d corpus/kicad-demos ]; then
+            echo "no /usr/share/kicad/demos in image; boards found in image:"
+            docker run --rm --entrypoint bash kal-drc:${{ matrix.kicad }} -c \
+              "find / -name '*.kicad_pcb' -not -path '/proc/*' 2>/dev/null | head -n 20"
+          fi
+          cp -r bench/boards corpus/bench
+          echo "boards: $(find corpus -name '*.kicad_pcb' | wc -l)"
+      - name: Round-trip + DRC compare
+        run: bash bench/roundtrip.sh target/release/kal-roundtrip kal-drc:${{ matrix.kicad }} out/roundtrip corpus
+      - name: Upload round-trip report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roundtrip-kicad-${{ matrix.kicad }}
+          path: |
+            out/roundtrip/report.tsv
+            out/roundtrip/**/*.log
+            out/roundtrip/**/drc-diff.txt
