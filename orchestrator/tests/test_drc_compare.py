@@ -73,6 +73,32 @@ class CompareTest(unittest.TestCase):
         silk["description"] = "Silkscreen clearance"
         self.assertEqual(run(SAMPLE, self.write("c.json", other))[0], 1)
 
+    def test_item_order_is_ignored(self):
+        other = copy.deepcopy(self.report)
+        pair = [
+            {"description": "Via [GND] on F.Cu - B.Cu", "pos": {"x": 1, "y": 2}},
+            {"description": "Pad 1 [VCC] of C1", "pos": {"x": 3, "y": 4}},
+        ]
+        self.report["violations"][0]["items"] = pair
+        other["violations"][0]["items"] = list(reversed(pair))
+        code, out = run(self.write("a.json", self.report), self.write("b.json", other))
+        self.assertEqual((code, out.strip()), (0, "identical"))
+
+    def test_hole_clearance_compares_without_items(self):
+        hole = {
+            "type": "hole_clearance",
+            "severity": "error",
+            "description": "Hole clearance violation (actual 0.2290 mm)",
+            "items": [{"description": "Via [GND]", "pos": {"x": 1, "y": 2}}],
+        }
+        other = copy.deepcopy(self.report)
+        self.report["violations"].append(hole)
+        moved = copy.deepcopy(hole)
+        moved["items"] = [{"description": "Hole of J1", "pos": {"x": 5, "y": 6}}]
+        other["violations"].append(moved)
+        code, out = run(self.write("a.json", self.report), self.write("b.json", other))
+        self.assertEqual((code, out.strip()), (0, "identical"))
+
     def test_bad_input_exit_2(self):
         self.assertEqual(run(SAMPLE, Path(self.tmp.name) / "missing.json")[0], 2)
 

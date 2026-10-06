@@ -5,8 +5,11 @@ Report metadata (date, source, kicad_version) is ignored; violations are compare
 multisets per section. Some entries are compared without their items, because KiCad picks
 the items or the marker position arbitrarily and does not reproduce the pick between runs on
 the same file: unconnected items (which of several equally near pads), silkscreen overlap and
-copper connection width (where along the overlap or narrow neck). Their count, type, severity
-and description still have to match. Exit 0 identical, 1 different, 2 bad input.
+copper connection width (where along the overlap or narrow neck), hole clearance (which hole or
+item of a crowded group is reported; seen on KiCad 10 between a board and its re-laid-out copy).
+Their count, type, severity and description still have to match. Items of the other entries are
+compared as a set, so the order KiCad lists the two items of a pair in does not matter.
+Exit 0 identical, 1 different, 2 bad input.
 
 Usage:
     python3 orchestrator/drc_compare.py a/drc.json b/drc.json [--top 10]
@@ -23,14 +26,16 @@ from pathlib import Path
 from drc_summary import SECTIONS, DrcReportError, load_report
 
 # Violation types whose items/positions are an arbitrary pick (see module doc).
-ARBITRARY_ITEMS = {"silk_overlap", "connection_width"}
+ARBITRARY_ITEMS = {"silk_overlap", "connection_width", "hole_clearance"}
 
 
 def violation_key(v: dict, with_items: bool = True) -> tuple:
     items = tuple(
-        (i.get("description", ""), json.dumps(i.get("pos"), sort_keys=True))
-        for i in (v.get("items") or [])
-        if with_items
+        sorted(
+            (i.get("description", ""), json.dumps(i.get("pos"), sort_keys=True))
+            for i in (v.get("items") or [])
+            if with_items
+        )
     )
     return (
         v.get("type", ""),
