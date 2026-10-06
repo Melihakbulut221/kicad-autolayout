@@ -7,6 +7,10 @@
 
 use std::fmt;
 
+/// Canonical output wraps runs of atoms so no line is longer than this many bytes; kicad-cli
+/// refuses files with very long lines.
+pub const MAX_LINE: usize = 100;
+
 /// One node of the tree.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Node {
@@ -335,7 +339,8 @@ impl Node {
                 let mut broken = false;
                 for (k, item) in items.iter().enumerate() {
                     broken |= matches!(item, Node::List { .. });
-                    if broken {
+                    let wrap = k > 0 && line_len(out) + atom_len(item) >= MAX_LINE;
+                    if broken || wrap {
                         newline(out, depth + 1);
                     } else if k > 0 {
                         out.push(' ');
@@ -355,6 +360,19 @@ fn newline(out: &mut String, depth: usize) {
     out.push('\n');
     for _ in 0..depth {
         out.push('\t');
+    }
+}
+
+/// Bytes on the last line of `out`.
+fn line_len(out: &str) -> usize {
+    out.len() - out.rfind('\n').map_or(0, |p| p + 1)
+}
+
+/// Bytes an atom adds to a line, including the separating space.
+fn atom_len(node: &Node) -> usize {
+    match node {
+        Node::Atom { text, .. } => text.len() + 1,
+        Node::List { .. } => 0,
     }
 }
 
@@ -424,6 +442,16 @@ mod tests {
         assert!(parse(&canonical).unwrap().same_tree(&doc));
         assert!(canonical.starts_with("(kicad_pcb\n\t(version 20240108)\n"));
         assert!(canonical.contains("\t(empty\n\t\t()\n\t)\n)\n"));
+    }
+
+    #[test]
+    fn canonical_wraps_long_atom_runs() {
+        let atoms = ["0123456789"; 50].join(" ");
+        let doc = parse(&format!("(data {atoms})")).unwrap();
+        let canonical = doc.write_canonical();
+        assert!(canonical.lines().count() > 1);
+        assert!(canonical.lines().all(|l| l.len() <= MAX_LINE));
+        assert!(parse(&canonical).unwrap().same_tree(&doc));
     }
 
     #[test]
