@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "board": "example",
+  "constraints": [
+    {"id": "ddr-clk-dp", "type": "diff_pair", "p": "DDR_CK_P", "n": "DDR_CK_N", "width_mm": 0.1, "gap_mm": 0.12, "max_uncoupled_mm": 2, "max_skew_mm": 0.05, "source": {"doc": "example-ddr4-layout-guide.pdf", "page": 14}, "approved": true, "approved_by": "reviewer"},
+    {"id": "ddr-dq0-match", "type": "length_match", "nets": ["DDR_DQ0", "DDR_DQ1", "DDR_DQ2", "DDR_DQ3"], "tolerance_mm": 0.127, "source": {"doc": "example-ddr4-layout-guide.pdf", "page": 15, "section": "Byte lane matching"}, "approved": true, "approved_by": "reviewer"},
+    {"id": "usb-imp", "type": "impedance", "on": {"netclass": "USB"}, "ohms": 90, "kind": "differential", "source": {"doc": "example-usb-guide.pdf", "page": "Table 3"}},
+    {"id": "c12-near-u1", "type": "max_distance", "from": "C12", "to": "U1.7", "value_mm": 2.0, "source": {"doc": "example-pmic.pdf", "page": 14}},
+    {"id": "pwr-width", "type": "track_width", "on": {"netclass": "Power"}, "min_mm": 0.3, "opt_mm": 0.5, "source": {"doc": "example-pmic.pdf", "page": 20}, "approved": true, "approved_by": "reviewer"},
+    {"id": "hv-clear", "type": "clearance", "a": {"netclass": "HV"}, "min_mm": 0.5, "source": {"doc": "example-isolation.pdf", "page": 3}, "approved": true, "approved_by": "reviewer"},
+    {"id": "clk-max", "type": "max_length", "on": {"nets": ["CLK_25M"]}, "max_mm": 50, "source": {"doc": "example-clock.pdf", "page": 8}}
+  ]
+}
