@@ -1,0 +1,296 @@
+{
+  "version": 1,
+  "board": "usb3-pcie",
+  "not_labeled": [
+    "p16 table: SATA and HDMI rows (no such interface on the board)",
+    "p16 table: skew between all PCIe RX/TX pairs 550 mils (board has one lane)",
+    "p9 3.2: route >= 90 mils from the reference plane edge (no constraint type)",
+    "p10 3.3: break-out within 0.25 in of the package (no constraint type)",
+    "p11 3.6/3.7: via stubs < 15 mils, back-drill (no constraint type)",
+    "p8 2.4: stitching vias within 200 mils of signal vias (no constraint type)",
+    "p16-p20: other device tables repeat the same rows with different limits; only the p16 table is labeled"
+  ],
+  "constraints": [
+    {
+      "id": "ss-len",
+      "type": "max_length",
+      "on": {
+        "nets": [
+          "USB_SSTX_P",
+          "USB_SSTX_N",
+          "USB_SSRX_P",
+          "USB_SSRX_N"
+        ]
+      },
+      "max_mm": 88.9,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): USB3.0 (SuperSpeed) Tracelength (Total) 3500 mils (MAX column assumed)"
+    },
+    {
+      "id": "pcie-len",
+      "type": "max_length",
+      "on": {
+        "nets": [
+          "PCIE_TX0_P",
+          "PCIE_TX0_N",
+          "PCIE_RX0_P",
+          "PCIE_RX0_N"
+        ]
+      },
+      "max_mm": 119.38,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): PCI-Express (PCIe) Tracelength (Total) 4700 mils (MAX column assumed)"
+    },
+    {
+      "id": "usb2-len",
+      "type": "max_length",
+      "on": {
+        "nets": [
+          "USB_DP",
+          "USB_DM"
+        ]
+      },
+      "max_mm": 304.8,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): USB2.0 Tracelength (Total) 4000 / 12000 mils; 12000 read as MAX, 4000 not labeled (TYP or MIN, check)"
+    },
+    {
+      "id": "sstx-skew",
+      "type": "length_match",
+      "nets": [
+        "USB_SSTX_P",
+        "USB_SSTX_N"
+      ],
+      "tolerance_mm": 0.127,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Skew within any USB3/SATA/PCIe/HDMI differential pair 5 mils"
+    },
+    {
+      "id": "ssrx-skew",
+      "type": "length_match",
+      "nets": [
+        "USB_SSRX_P",
+        "USB_SSRX_N"
+      ],
+      "tolerance_mm": 0.127,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Skew within any USB3/SATA/PCIe/HDMI differential pair 5 mils"
+    },
+    {
+      "id": "pcie-tx-skew",
+      "type": "length_match",
+      "nets": [
+        "PCIE_TX0_P",
+        "PCIE_TX0_N"
+      ],
+      "tolerance_mm": 0.127,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Skew within any USB3/SATA/PCIe/HDMI differential pair 5 mils"
+    },
+    {
+      "id": "pcie-rx-skew",
+      "type": "length_match",
+      "nets": [
+        "PCIE_RX0_P",
+        "PCIE_RX0_N"
+      ],
+      "tolerance_mm": 0.127,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Skew within any USB3/SATA/PCIe/HDMI differential pair 5 mils"
+    },
+    {
+      "id": "usb2-skew",
+      "type": "length_match",
+      "nets": [
+        "USB_DP",
+        "USB_DM"
+      ],
+      "tolerance_mm": 1.27,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Skew within any USB2.0 differential pair 50 mils"
+    },
+    {
+      "id": "usb2-zdiff",
+      "type": "impedance",
+      "on": {
+        "nets": [
+          "USB_DP",
+          "USB_DM"
+        ]
+      },
+      "ohms": 90,
+      "kind": "differential",
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): USB2.0 DP or DM pair differential impedance 81/90/99 ohm (TYP 90)"
+    },
+    {
+      "id": "usb2-zse",
+      "type": "impedance",
+      "on": {
+        "nets": [
+          "USB_DP",
+          "USB_DM"
+        ]
+      },
+      "ohms": 45,
+      "kind": "single",
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): USB2.0 DP or DM pair single-ended impedance 40.5/45/49.5 ohm (TYP 45)"
+    },
+    {
+      "id": "ss-zdiff",
+      "type": "impedance",
+      "on": {
+        "nets": [
+          "USB_SSTX_P",
+          "USB_SSTX_N",
+          "USB_SSRX_P",
+          "USB_SSRX_N"
+        ]
+      },
+      "ohms": 90,
+      "kind": "differential",
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): SuperSpeed SSRX or SSTX pair differential impedance 83.7/90/96.3 ohm (TYP 90)"
+    },
+    {
+      "id": "pcie-zdiff",
+      "type": "impedance",
+      "on": {
+        "nets": [
+          "PCIE_TX0_P",
+          "PCIE_TX0_N",
+          "PCIE_RX0_P",
+          "PCIE_RX0_N"
+        ]
+      },
+      "ohms": 100,
+      "kind": "differential",
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): PCI-Express RX or TX pair differential impedance 90/100/110 ohm (TYP 100)"
+    },
+    {
+      "id": "pcie-zse",
+      "type": "impedance",
+      "on": {
+        "nets": [
+          "PCIE_TX0_P",
+          "PCIE_TX0_N",
+          "PCIE_RX0_P",
+          "PCIE_RX0_N"
+        ]
+      },
+      "ohms": 60,
+      "kind": "single",
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): PCI-Express RX or TX trace single-ended impedance 51/60/69 ohm (TYP 60)"
+    },
+    {
+      "id": "hs-to-clk",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "USB_DP",
+          "USB_DM",
+          "USB_SSTX_P",
+          "USB_SSTX_N",
+          "USB_SSRX_P",
+          "USB_SSRX_N",
+          "PCIE_TX0_P",
+          "PCIE_TX0_N",
+          "PCIE_RX0_P",
+          "PCIE_RX0_N"
+        ]
+      },
+      "b": {
+        "nets": [
+          "CLK_25M"
+        ]
+      },
+      "min_mm": 1.27,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Differential pair to clock or high-speed periodic signal trace spacing 50 mils (MIN)"
+    },
+    {
+      "id": "hs-to-other",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "USB_DP",
+          "USB_DM",
+          "USB_SSTX_P",
+          "USB_SSTX_N",
+          "USB_SSRX_P",
+          "USB_SSRX_N",
+          "PCIE_TX0_P",
+          "PCIE_TX0_N",
+          "PCIE_RX0_P",
+          "PCIE_RX0_N"
+        ]
+      },
+      "min_mm": 0.762,
+      "source": {
+        "doc": "ti-spraar7",
+        "page": 16
+      },
+      "approved": false,
+      "note": "Table on p.16 (USB3.0/SATA/PCIe/USB2.0/HDMI): Differential pair to any other signal trace spacing 30 mils (MIN). 'Other' excludes the pair's own partner; schema v1 cannot say 'not', so dru.py would also apply it inside each pair (follow-up)"
+    }
+  ]
+}

@@ -1,0 +1,557 @@
+{
+  "version": 1,
+  "board": "ddr2-x16",
+  "not_labeled": [
+    "p5 Table 3 rows 12-13: single-ended impedance 50-75 ohm, Z +/- 5 ohm (a range, not one target)",
+    "p6 Table 4: placement X/Y/offset and keep-out clearance 4w (no constraint type)",
+    "p8 Table 6: HS bypass capacitor within 250 mils of the device (needs component references)",
+    "p11 Table 10 rows 2-3, 10-11: A-to-B / B-to-C branch mismatch (two-device T topology; board has one device)",
+    "p11-12: nominal trace length CACLM/DQLM +/- 50 mils (relative to an unspecified nominal)",
+    "p11-12 note: spacing may drop to w for 500 mils of BGA escape (no constraint type)"
+  ],
+  "constraints": [
+    {
+      "id": "ddr-width",
+      "type": "track_width",
+      "on": {
+        "nets": [
+          "DDR_CK_P",
+          "DDR_CK_N",
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT",
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQM0",
+          "DDR_DQS0",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15",
+          "DDR_DQM1",
+          "DDR_DQS1"
+        ]
+      },
+      "min_mm": 0.1016,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 5,
+        "section": "Table 3"
+      },
+      "approved": false,
+      "note": "Table 3 row 8: PCB Trace Width w 4 mils (MIN column assumed)"
+    },
+    {
+      "id": "vref-width",
+      "type": "track_width",
+      "on": {
+        "nets": [
+          "DDR_VREF"
+        ]
+      },
+      "opt_mm": 0.508,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 10,
+        "section": "1.1.10 VREF Routing"
+      },
+      "approved": false,
+      "note": "Figure 5: VREF trace width is 20 mils (nominal)"
+    },
+    {
+      "id": "ca-match",
+      "type": "length_match",
+      "nets": [
+        "DDR_CK_P",
+        "DDR_CK_N",
+        "DDR_A0",
+        "DDR_A1",
+        "DDR_A2",
+        "DDR_A3",
+        "DDR_A4",
+        "DDR_A5",
+        "DDR_A6",
+        "DDR_A7",
+        "DDR_A8",
+        "DDR_A9",
+        "DDR_A10",
+        "DDR_A11",
+        "DDR_A12",
+        "DDR_A13",
+        "DDR_BA0",
+        "DDR_BA1",
+        "DDR_BA2",
+        "DDR_RAS_N",
+        "DDR_CAS_N",
+        "DDR_WE_N",
+        "DDR_CS_N",
+        "DDR_CKE",
+        "DDR_ODT"
+      ],
+      "tolerance_mm": 2.54,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 11,
+        "section": "Table 10"
+      },
+      "approved": false,
+      "note": "Table 10 rows 6-7: ADDR_CTRL to CK and ADDR_CTRL to ADDR_CTRL skew length mismatch 100 mils"
+    },
+    {
+      "id": "lane0-match",
+      "type": "length_match",
+      "nets": [
+        "DDR_DQ0",
+        "DDR_DQ1",
+        "DDR_DQ2",
+        "DDR_DQ3",
+        "DDR_DQ4",
+        "DDR_DQ5",
+        "DDR_DQ6",
+        "DDR_DQ7",
+        "DDR_DQM0",
+        "DDR_DQS0"
+      ],
+      "tolerance_mm": 2.54,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 12,
+        "section": "Table 11"
+      },
+      "approved": false,
+      "note": "Table 11 rows 3-4: DQ to DQS and DQ to DQ skew length mismatch 100 mils, per byte lane"
+    },
+    {
+      "id": "lane1-match",
+      "type": "length_match",
+      "nets": [
+        "DDR_DQ8",
+        "DDR_DQ9",
+        "DDR_DQ10",
+        "DDR_DQ11",
+        "DDR_DQ12",
+        "DDR_DQ13",
+        "DDR_DQ14",
+        "DDR_DQ15",
+        "DDR_DQM1",
+        "DDR_DQS1"
+      ],
+      "tolerance_mm": 2.54,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 12,
+        "section": "Table 11"
+      },
+      "approved": false,
+      "note": "Table 11 rows 3-4: DQ to DQS and DQ to DQ skew length mismatch 100 mils, per byte lane"
+    },
+    {
+      "id": "ck-to-ddr",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "DDR_CK_P",
+          "DDR_CK_N"
+        ]
+      },
+      "b": {
+        "nets": [
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT",
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQM0",
+          "DDR_DQS0",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15",
+          "DDR_DQM1",
+          "DDR_DQS1"
+        ]
+      },
+      "min_mm": 0.3048,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 11,
+        "section": "Table 10"
+      },
+      "approved": false,
+      "note": "Table 10 row 4: center to center CK to other DDR2 trace 4w = 16 mils; edge gap 4w - w = 12 mils"
+    },
+    {
+      "id": "ca-to-ddr",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT"
+        ]
+      },
+      "b": {
+        "nets": [
+          "DDR_CK_P",
+          "DDR_CK_N",
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQM0",
+          "DDR_DQS0",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15",
+          "DDR_DQM1",
+          "DDR_DQS1"
+        ]
+      },
+      "min_mm": 0.3048,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 11,
+        "section": "Table 10"
+      },
+      "approved": false,
+      "note": "Table 10 row 8: center to center ADDR_CTRL to other DDR2 trace 4w; edge gap 12 mils"
+    },
+    {
+      "id": "ca-to-ca",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT"
+        ]
+      },
+      "b": {
+        "nets": [
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT"
+        ]
+      },
+      "min_mm": 0.2032,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 11,
+        "section": "Table 10"
+      },
+      "approved": false,
+      "note": "Table 10 row 9: center to center ADDR_CTRL to other ADDR_CTRL 3w; edge gap 3w - w = 8 mils"
+    },
+    {
+      "id": "dqs-to-ddr",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "DDR_DQS0",
+          "DDR_DQS1"
+        ]
+      },
+      "b": {
+        "nets": [
+          "DDR_CK_P",
+          "DDR_CK_N",
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT",
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQM0",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15",
+          "DDR_DQM1"
+        ]
+      },
+      "min_mm": 0.3048,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 12,
+        "section": "Table 11"
+      },
+      "approved": false,
+      "note": "Table 11 row 1: center to center DQS to other DDR2 trace 4w; edge gap 12 mils"
+    },
+    {
+      "id": "dq-to-ddr",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15"
+        ]
+      },
+      "b": {
+        "nets": [
+          "DDR_CK_P",
+          "DDR_CK_N",
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A4",
+          "DDR_A5",
+          "DDR_A6",
+          "DDR_A7",
+          "DDR_A8",
+          "DDR_A9",
+          "DDR_A10",
+          "DDR_A11",
+          "DDR_A12",
+          "DDR_A13",
+          "DDR_BA0",
+          "DDR_BA1",
+          "DDR_BA2",
+          "DDR_RAS_N",
+          "DDR_CAS_N",
+          "DDR_WE_N",
+          "DDR_CS_N",
+          "DDR_CKE",
+          "DDR_ODT",
+          "DDR_DQM0",
+          "DDR_DQS0",
+          "DDR_DQM1",
+          "DDR_DQS1"
+        ]
+      },
+      "min_mm": 0.3048,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 12,
+        "section": "Table 11"
+      },
+      "approved": false,
+      "note": "Table 11 row 5: center to center DQ to other DDR2 trace 4w; edge gap 12 mils"
+    },
+    {
+      "id": "dq-to-dq",
+      "type": "clearance",
+      "a": {
+        "nets": [
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15"
+        ]
+      },
+      "b": {
+        "nets": [
+          "DDR_DQ0",
+          "DDR_DQ1",
+          "DDR_DQ2",
+          "DDR_DQ3",
+          "DDR_DQ4",
+          "DDR_DQ5",
+          "DDR_DQ6",
+          "DDR_DQ7",
+          "DDR_DQ8",
+          "DDR_DQ9",
+          "DDR_DQ10",
+          "DDR_DQ11",
+          "DDR_DQ12",
+          "DDR_DQ13",
+          "DDR_DQ14",
+          "DDR_DQ15"
+        ]
+      },
+      "min_mm": 0.2032,
+      "source": {
+        "doc": "ti-sprab08",
+        "page": 12,
+        "section": "Table 11"
+      },
+      "approved": false,
+      "note": "Table 11 row 6: center to center DQ to other DQ 3w; edge gap 8 mils"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "board": "usb3-pcie",
+  "note": "Synthetic net list given to the extractor with ti-spraar7. CLK_25M is the only clock / periodic signal.",
+  "nets": [
+    "USB_DP",
+    "USB_DM",
+    "USB_SSTX_P",
+    "USB_SSTX_N",
+    "USB_SSRX_P",
+    "USB_SSRX_N",
+    "PCIE_TX0_P",
+    "PCIE_TX0_N",
+    "PCIE_RX0_P",
+    "PCIE_RX0_N",
+    "CLK_25M",
+    "I2C_SCL",
+    "I2C_SDA",
+    "GND",
+    "+3V3",
+    "+1V8"
+  ]
+}
