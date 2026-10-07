@@ -39,6 +39,6 @@ jobs:
             echo "url: $url"
             echo "sha256: $(sha256sum "$pdf" | cut -d' ' -f1)"
             pdfinfo "$pdf" | grep -E '^(Title|Pages|CreationDate|ModDate):'
-            pdftotext -layout "$pdf" - | python3 bench/extraction/rule_lines.py --max 400
+            pdftotext -layout "$pdf" - | python3 bench/extraction/rule_lines.py --max 600
             echo "::endgroup::"
           done

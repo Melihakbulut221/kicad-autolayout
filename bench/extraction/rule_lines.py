@@ -22,6 +22,8 @@ WORDS = re.compile(
     r"gap|pair|reference plane|capacitor|placed|within|maximum|minimum|max|min",
     re.I,
 )
+# Table captions and column headers give the context (which interface, MIN/NOM/MAX) of a row.
+CONTEXT = re.compile(r"^(?:Table|Figure)\s+\d+(?:-\d+)?\.?\s|\bMIN\b.*\bMAX\b|^\d+(?:\.\d+)*\s+[A-Z]")
 
 
 def rule_lines(text: str, limit: int = 400) -> list[str]:
@@ -29,7 +31,10 @@ def rule_lines(text: str, limit: int = 400) -> list[str]:
     for page, body in enumerate(text.split("\f"), start=1):
         for raw in body.splitlines():
             line = " ".join(raw.split())
-            if len(line) > 220 or not RULE.search(line) or not WORDS.search(line):
+            if len(line) > 220:
+                continue
+            is_rule = RULE.search(line) and WORDS.search(line)
+            if not is_rule and not CONTEXT.search(line):
                 continue
             out.append(f"p{page}: {line}")
             if len(out) >= limit:

@@ -9,6 +9,8 @@ import rule_lines  # noqa: E402
 TEXT = (
     "Title page\n"
     "\f"
+    "Table 2. USB Requirements\n"
+    "PARAMETER MIN NOM MAX UNIT\n"
     "Route DP/DM with 90 Ω differential impedance.\n"
     "Revision 1.2 released\n"
     "\f"
@@ -23,6 +25,8 @@ class RuleLinesTest(unittest.TestCase):
         self.assertEqual(
             rule_lines.rule_lines(TEXT),
             [
+                "p2: Table 2. USB Requirements",
+                "p2: PARAMETER MIN NOM MAX UNIT",
                 "p2: Route DP/DM with 90 Ω differential impedance.",
                 "p3: Keep intra-pair skew below 5 mils.",
                 "p3: Maximum trace length is 12 inches.",
