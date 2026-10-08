@@ -2,6 +2,7 @@
 //! Filled by both KiCad paths (S-expression and IPC); independent of KiCad version.
 
 pub mod board;
+pub mod layout;
 pub mod sexpr;
 pub mod units;
 

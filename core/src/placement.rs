@@ -71,8 +71,6 @@ pub struct Placement {
 pub enum PlaceError {
     /// A net names a part or pin that does not exist.
     BadPinRef { net: String, pin: PinRef },
-    /// A fixed part's body is not inside the outline.
-    FixedOutside { reference: String },
     /// The placer found no legal position for this part.
     DoesNotFit { reference: String },
 }
@@ -83,9 +81,6 @@ impl std::fmt::Display for PlaceError {
             PlaceError::BadPinRef { net, pin } => {
                 write!(f, "net {net}: no pin {} on part {}", pin.pin, pin.part)
             }
-            PlaceError::FixedOutside { reference } => {
-                write!(f, "fixed part {reference} is outside the board outline")
-            }
             PlaceError::DoesNotFit { reference } => write!(f, "no room for {reference}"),
         }
     }
@@ -94,7 +89,7 @@ impl std::fmt::Display for PlaceError {
 impl std::error::Error for PlaceError {}
 
 impl Problem {
-    /// Check references and fixed parts before placing.
+    /// Check that every net pin exists. Fixed parts may overhang the outline (edge connectors).
     pub fn validate(&self) -> Result<(), PlaceError> {
         for net in &self.nets {
             for &pin in &net.pins {
@@ -102,14 +97,6 @@ impl Problem {
                 if !part.is_some_and(|p| pin.pin < p.pins.len()) {
                     let net = net.name.clone();
                     return Err(PlaceError::BadPinRef { net, pin });
-                }
-            }
-        }
-        for (i, part) in self.parts.iter().enumerate() {
-            if let Some(pose) = part.fixed {
-                if !self.outline.contains_rect(&self.body_at(i, pose)) {
-                    let reference = part.reference.clone();
-                    return Err(PlaceError::FixedOutside { reference });
                 }
             }
         }
@@ -130,13 +117,15 @@ impl Problem {
 }
 
 /// Placement score. Lower is better; legal means no overlap and nothing outside the outline.
+/// Only what a placer can change is counted: fixed parts may overhang the outline and two
+/// fixed parts may overlap without cost.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Cost {
     /// Sum over nets of the half-perimeter of the pins' bounding box, in nm.
     pub wirelength: i128,
     /// Sum over same-side part pairs of body overlap (bodies grown by the clearance), in nm².
     pub overlap: i128,
-    /// Body area outside the outline, in nm².
+    /// Body area of movable parts outside the outline, in nm².
     pub outside: i128,
 }
 
@@ -165,11 +154,15 @@ pub fn evaluate(problem: &Problem, placement: &Placement) -> Cost {
     let bodies: Vec<Rect> = (0..problem.parts.len())
         .map(|i| problem.body_at(i, poses[i]))
         .collect();
+    let fixed = |i: usize| problem.parts[i].fixed.is_some();
     for (i, a) in bodies.iter().enumerate() {
-        cost.outside += a.area() - a.intersection(&problem.outline).area();
+        if !fixed(i) {
+            cost.outside += a.area() - a.intersection(&problem.outline).area();
+        }
         let grown = a.inflate(problem.clearance);
         for (j, b) in bodies.iter().enumerate().skip(i + 1) {
-            if problem.parts[i].side == problem.parts[j].side {
+            let same_side = problem.parts[i].side == problem.parts[j].side;
+            if same_side && !(fixed(i) && fixed(j)) {
                 cost.overlap += grown.overlap_area(b);
             }
         }
@@ -214,6 +207,9 @@ impl Placer for ShelfPlacer {
         });
 
         let (mut x, mut y, mut row) = (outline.min.x, outline.min.y, Nm::ZERO);
+        // Nearest bottom edge (plus gap) among the fixed bodies that pushed parts along this
+        // row: where the next row starts when nothing fitted in this one.
+        let mut below: Option<Nm> = None;
         for i in order {
             let body = problem.parts[i].body;
             let (w, h) = (body.width(), body.height());
@@ -222,17 +218,27 @@ impl Placer for ShelfPlacer {
             };
             loop {
                 if x + w > outline.max.x {
-                    (x, y, row) = (outline.min.x, y + row + gap, Nm::ZERO);
                     if w > outline.width() {
                         return Err(does_not_fit());
                     }
+                    // The next row starts strictly lower, also with a zero gap and an empty row.
+                    let next = match below {
+                        _ if row > Nm::ZERO => y + row + gap,
+                        Some(b) => b,
+                        None => y + Nm(1),
+                    };
+                    (x, y, row, below) = (outline.min.x, next, Nm::ZERO, None);
                 }
                 if y + h > outline.max.y {
                     return Err(does_not_fit());
                 }
                 let slot = Rect::from_corners(Point::new(x, y), Point::new(x + w, y + h));
                 match taken.iter().find(|t| blocks(t, &slot, gap)) {
-                    Some(t) => x = t.max.x + gap,
+                    Some(t) => {
+                        x = t.max.x + gap;
+                        let bottom = t.max.y + gap;
+                        below = Some(below.map_or(bottom, |b| b.min(bottom)));
+                    }
                     None => {
                         let at = Point::new(x - body.min.x, y - body.min.y);
                         poses[i] = Pose {
@@ -342,6 +348,19 @@ mod tests {
     }
 
     #[test]
+    fn shelf_placer_moves_below_a_full_width_fixed_part() {
+        // Zero clearance and a fixed part across the whole first row: the next row has to
+        // start under it (this used to loop forever on a KiCad demo board).
+        let mut j1 = part("J1", 20, 4);
+        j1.fixed = Some(pose(10, 2));
+        let mut p = problem(vec![part("R1", 2, 1), part("R2", 2, 1), j1]);
+        p.clearance = Nm::ZERO;
+        let result = ShelfPlacer.place(&p, 0).expect("fits");
+        assert!(evaluate(&p, &result).is_legal());
+        assert_eq!(result.poses[0].at.y, mm(4) + Nm(500_000));
+    }
+
+    #[test]
     fn shelf_placer_reports_errors() {
         let p = problem(vec![part("R1", 2, 1), part("U1", 30, 2)]);
         let expected = PlaceError::DoesNotFit {
@@ -353,9 +372,11 @@ mod tests {
         p.nets[0].pins.push(PinRef { part: 1, pin: 9 });
         assert!(matches!(p.validate(), Err(PlaceError::BadPinRef { .. })));
 
+        // A fixed edge connector may overhang the outline; it costs nothing and stays put.
         let mut j1 = part("J1", 4, 4);
         j1.fixed = Some(pose(0, 0));
         let p = problem(vec![part("R1", 2, 1), j1]);
-        assert!(matches!(p.validate(), Err(PlaceError::FixedOutside { .. })));
+        let result = ShelfPlacer.place(&p, 0).expect("fits");
+        assert!(evaluate(&p, &result).is_legal());
     }
 }

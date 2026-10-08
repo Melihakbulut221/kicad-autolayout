@@ -3,6 +3,7 @@
 pub use kal_ir as ir;
 
 pub mod geom;
+pub mod import;
 pub mod placement;
 
 /// Logged with every run (with seed, KiCad version, ruleset hash) for determinism.
