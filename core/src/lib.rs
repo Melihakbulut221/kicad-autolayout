@@ -2,6 +2,9 @@
 
 pub use kal_ir as ir;
 
+pub mod geom;
+pub mod placement;
+
 /// Logged with every run (with seed, KiCad version, ruleset hash) for determinism.
 pub const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
 

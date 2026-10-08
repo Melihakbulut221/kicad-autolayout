@@ -92,6 +92,8 @@ Phase 0 leftovers done: 106 corpus boards, all pinned, corpus workflow green on 
 Phase 1 goal: datasheet -> constraints -> `.kicad_dru`/netclasses; LLM design review on a JSON board summary. Target: extraction precision >= 90% on an internal labeled set.
 Order: (1) constraint schema + validator, (2) approved constraints -> `.kicad_dru` and `.kicad_pro` netclasses, checked with kicad-cli, (3) board summary JSON from `kal_ir::sexpr`, (4) LLM extraction + review (needs an API key secret and a human-labeled set).
 
+Phase 2 started by owner decision while step 4 waits: `kal-core` skeleton (`geom`: integer nm points/rects/quarter-turn rotations; `placement`: `Problem`/`Placement`, `evaluate` = HPWL + overlap + outside, `Placer` trait, deterministic `ShelfPlacer` baseline). Next: footprint poses/courtyards from `kal_ir`, `kal-place` CLI, SA placer.
+
 Later phases (do not start early):
 2. Semi-auto placement: decoupling/sub-circuit (CP-SAT), block floorplan, one-click Freerouting trial.
 3. End-to-end simple boards (2-4 layers, <=150 parts): own router, diff pairs, length tuning, parallel candidates, KiCad 11 headless IPC.
