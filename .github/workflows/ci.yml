@@ -117,8 +117,8 @@ jobs:
         kicad: ["9.0", "10.0"]
     steps:
       - uses: actions/checkout@v4
-      - name: Build kal-roundtrip and kal-summary
-        run: cargo build -q --release --locked --bin kal-roundtrip --bin kal-summary
+      - name: Build kal-roundtrip, kal-summary and kal-place
+        run: cargo build -q --release --locked --bin kal-roundtrip --bin kal-summary --bin kal-place
       - name: Build DRC image
         run: docker build --build-arg KICAD_TAG=${{ matrix.kicad }} -f docker/Dockerfile -t kal-drc:${{ matrix.kicad }} .
       - name: Collect corpus (KiCad demos from the image + bench boards)
@@ -142,6 +142,30 @@ jobs:
               echo "summary failed: $b"
               fail=1
             fi
+          done < <(find corpus -name '*.kicad_pcb' | sort)
+          exit "$fail"
+      - name: Placement baseline (report only; fails on a crash)
+        run: |
+          fail=0
+          printf 'board\tparts\tfixed\toff_grid\tcurrent_wl_mm\tcurrent_legal\tshelf\n'
+          while IFS= read -r b; do
+            rc=0
+            out=$(target/release/kal-place "$b" 2>&1) || rc=$?
+            if [ "$rc" -gt 2 ]; then
+              echo "kal-place crashed (exit $rc) on $b"; echo "$out" | tail -n 5; fail=1; continue
+            fi
+            printf '%s' "$out" | python3 -c '
+          import json, sys
+          b = sys.argv[1]
+          try:
+              r = json.load(sys.stdin)
+          except ValueError:
+              print(f"{b}\t-\t-\t-\t-\t-\tno report"); sys.exit()
+          c, res = r["current"], r["result"]
+          shelf = res.get("error") or ("legal" if res["legal"] else "illegal")
+          row = [b, r["parts"], r["fixed"], r["off_grid"], round(c["wirelength_nm"] / 1e6, 1)]
+          print("\t".join(map(str, row + [c["legal"], shelf])))
+          ' "$b"
           done < <(find corpus -name '*.kicad_pcb' | sort)
           exit "$fail"
       - name: Round-trip + DRC compare

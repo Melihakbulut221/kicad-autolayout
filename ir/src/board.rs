@@ -112,7 +112,7 @@ pub fn summarize(doc: &Document) -> Result<BoardSummary, SummaryError> {
     Ok(s)
 }
 
-fn arg_of(node: &Node, head: &str) -> String {
+pub(crate) fn arg_of(node: &Node, head: &str) -> String {
     match node.child(head).and_then(|c| c.arg(1)) {
         Some(text) => unquote(text),
         None => String::new(),
@@ -123,13 +123,13 @@ fn mm_arg(node: Option<&Node>) -> Option<Nm> {
     Nm::parse_mm(node?.arg(1)?)
 }
 
-fn point(node: &Node) -> Option<(Nm, Nm)> {
+pub(crate) fn point(node: &Node) -> Option<(Nm, Nm)> {
     let x = Nm::parse_mm(node.arg(1)?)?;
     let y = Nm::parse_mm(node.arg(2)?)?;
     Some((x, y))
 }
 
-fn distance(x0: Nm, y0: Nm, x1: Nm, y1: Nm) -> Nm {
+pub(crate) fn distance(x0: Nm, y0: Nm, x1: Nm, y1: Nm) -> Nm {
     let dx = i128::from(x1.0) - i128::from(x0.0);
     let dy = i128::from(y1.0) - i128::from(y0.0);
     let len = (dx * dx + dy * dy).isqrt();
@@ -143,7 +143,7 @@ fn segment_length(seg: &Node) -> Option<Nm> {
 }
 
 /// Net name of a track: KiCad <= 9 writes the net number, newer files may write the name.
-fn net_of(item: &Node, names: &BTreeMap<String, String>) -> Option<String> {
+pub(crate) fn net_of(item: &Node, names: &BTreeMap<String, String>) -> Option<String> {
     let raw = item.child("net")?.arg(1)?;
     if raw.starts_with('"') {
         return Some(unquote(raw));
@@ -151,7 +151,7 @@ fn net_of(item: &Node, names: &BTreeMap<String, String>) -> Option<String> {
     names.get(raw).cloned()
 }
 
-fn footprint(fp: &Node) -> Footprint {
+pub(crate) fn footprint(fp: &Node) -> Footprint {
     let mut f = Footprint {
         lib_id: fp.arg(1).map(unquote).unwrap_or_default(),
         layer: arg_of(fp, "layer"),
@@ -178,7 +178,7 @@ fn footprint(fp: &Node) -> Footprint {
     f
 }
 
-fn outline(board: &Node) -> Option<[Nm; 4]> {
+pub(crate) fn outline(board: &Node) -> Option<[Nm; 4]> {
     let mut pts: Vec<(Nm, Nm)> = Vec::new();
     for item in board.items() {
         let is_graphic = item.head().is_some_and(|h| h.starts_with("gr_"));
