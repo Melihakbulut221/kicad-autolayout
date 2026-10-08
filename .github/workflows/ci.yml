@@ -144,15 +144,15 @@ jobs:
             fi
           done < <(find corpus -name '*.kicad_pcb' | sort)
           exit "$fail"
-      - name: Placement baseline (report only; fails on a crash)
+      - name: Placement baseline (report only; fails on a crash or a 120 s timeout)
         run: |
           fail=0
           printf 'board\tparts\tfixed\toff_grid\tcurrent_wl_mm\tcurrent_legal\tshelf\n'
           while IFS= read -r b; do
             rc=0
-            out=$(target/release/kal-place "$b" 2>&1) || rc=$?
+            out=$(timeout 120 target/release/kal-place "$b" 2>&1) || rc=$?
             if [ "$rc" -gt 2 ]; then
-              echo "kal-place crashed (exit $rc) on $b"; echo "$out" | tail -n 5; fail=1; continue
+              echo "kal-place crashed or timed out (exit $rc) on $b"; echo "$out" | tail -n 5; fail=1; continue
             fi
             printf '%s' "$out" | python3 -c '
           import json, sys

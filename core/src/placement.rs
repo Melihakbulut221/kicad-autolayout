@@ -207,6 +207,9 @@ impl Placer for ShelfPlacer {
         });
 
         let (mut x, mut y, mut row) = (outline.min.x, outline.min.y, Nm::ZERO);
+        // Nearest bottom edge (plus gap) among the fixed bodies that pushed parts along this
+        // row: where the next row starts when nothing fitted in this one.
+        let mut below: Option<Nm> = None;
         for i in order {
             let body = problem.parts[i].body;
             let (w, h) = (body.width(), body.height());
@@ -215,17 +218,27 @@ impl Placer for ShelfPlacer {
             };
             loop {
                 if x + w > outline.max.x {
-                    (x, y, row) = (outline.min.x, y + row + gap, Nm::ZERO);
                     if w > outline.width() {
                         return Err(does_not_fit());
                     }
+                    // The next row starts strictly lower, also with a zero gap and an empty row.
+                    let next = match below {
+                        _ if row > Nm::ZERO => y + row + gap,
+                        Some(b) => b,
+                        None => y + Nm(1),
+                    };
+                    (x, y, row, below) = (outline.min.x, next, Nm::ZERO, None);
                 }
                 if y + h > outline.max.y {
                     return Err(does_not_fit());
                 }
                 let slot = Rect::from_corners(Point::new(x, y), Point::new(x + w, y + h));
                 match taken.iter().find(|t| blocks(t, &slot, gap)) {
-                    Some(t) => x = t.max.x + gap,
+                    Some(t) => {
+                        x = t.max.x + gap;
+                        let bottom = t.max.y + gap;
+                        below = Some(below.map_or(bottom, |b| b.min(bottom)));
+                    }
                     None => {
                         let at = Point::new(x - body.min.x, y - body.min.y);
                         poses[i] = Pose {
@@ -332,6 +345,19 @@ mod tests {
         assert_eq!(result.poses[2], pose(3, 2));
         let again = ShelfPlacer.place(&p, 1).expect("fits");
         assert_eq!(result, again, "deterministic");
+    }
+
+    #[test]
+    fn shelf_placer_moves_below_a_full_width_fixed_part() {
+        // Zero clearance and a fixed part across the whole first row: the next row has to
+        // start under it (this used to loop forever on a KiCad demo board).
+        let mut j1 = part("J1", 20, 4);
+        j1.fixed = Some(pose(10, 2));
+        let mut p = problem(vec![part("R1", 2, 1), part("R2", 2, 1), j1]);
+        p.clearance = Nm::ZERO;
+        let result = ShelfPlacer.place(&p, 0).expect("fits");
+        assert!(evaluate(&p, &result).is_legal());
+        assert_eq!(result.poses[0].at.y, mm(4) + Nm(500_000));
     }
 
     #[test]
