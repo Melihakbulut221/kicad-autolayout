@@ -7,7 +7,7 @@
 
 use std::process::ExitCode;
 
-use kal_core::import::{import, Imported};
+use kal_core::import::import;
 use kal_core::ir::{layout, sexpr, Nm};
 use kal_core::placement::{evaluate, Cost, Placer, ShelfPlacer};
 use kal_core::ENGINE_VERSION;
@@ -40,7 +40,7 @@ fn run(path: &str) -> Result<(String, bool), String> {
     let board = layout::layout(&doc).map_err(|e| e.to_string())?;
     // Courtyards already carry the assembly margin, so bodies may touch.
     let imported = import(&board, Nm::ZERO).map_err(|e| e.to_string())?;
-    let Imported { problem, current, .. } = &imported;
+    let (problem, current) = (&imported.problem, &imported.current);
     let placer = ShelfPlacer;
     let seed = 0;
     let (result, placed) = match placer.place(problem, seed) {
