@@ -1,0 +1,8 @@
+{
+  "sources": [
+    {"id": "ti-spraar7", "url": "https://www.ti.com/lit/pdf/spraar7", "title": "High-Speed Interface Layout Guidelines (Rev. J)", "pages": 21, "sha256": "4a14e9b00afc174f336386cf0097f3a5e7a6a367840331fbb22070053ec36f41", "board": "usb3-pcie"},
+    {"id": "ti-sprab08", "url": "https://www.ti.com/lit/pdf/sprab08", "title": "Implementing DDR2 PCB Layout on the TMS320C6424 DSP", "pages": 13, "sha256": "fd5550f14dfc177469b97803622a3119c2b1fdbe5403052ecc27a03bd1c2ffe1", "board": "ddr2-x16"},
+    {"id": "ti-slla414", "url": "https://www.ti.com/lit/pdf/slla414", "title": "High-Speed Layout Guidelines for Signal Conditioners and USB Hubs (Rev. A)", "pages": 23, "sha256": "a5d930f7f6af20ddb04d8ab6fff62097a929a1141f5dffed184b6a8014ad0367"},
+    {"id": "ti-spraal7", "url": "https://www.ti.com/lit/pdf/spraal7", "title": "Implementing DDR2 PCB Layout on the TMS320C6421/4 DMSoC", "pages": 10, "sha256": "752a06faa7828989583a61c3925b7e9eff4e06d88697138612fd76ab7dd367f7"}
+  ]
+}

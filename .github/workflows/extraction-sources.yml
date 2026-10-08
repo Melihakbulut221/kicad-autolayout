@@ -1,0 +1,44 @@
+name: Extraction sources
+
+# Fetches the layout guides in bench/extraction/sources.json and prints, per document, its
+# title, page count, sha256 and the lines that look like numeric layout rules (with PDF page
+# index). The labeled extraction set is drafted and reviewed from this output; the PDFs are
+# never committed or uploaded.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - bench/extraction/**
+      - .github/workflows/extraction-sources.yml
+
+permissions:
+  contents: read
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poppler
+        run: sudo apt-get install -y -qq poppler-utils >/dev/null
+      - name: Fetch and list rule lines
+        run: |
+          mkdir -p "$RUNNER_TEMP/docs"
+          python3 -c 'import json; [print(s["id"], s["url"]) for s in json.load(open("bench/extraction/sources.json"))["sources"]]' |
+          while read -r id url; do
+            pdf="$RUNNER_TEMP/docs/$id.pdf"
+            echo "::group::$id"
+            if ! curl -fsSL -A "Mozilla/5.0 (X11; Linux x86_64)" -o "$pdf" "$url" ||
+              ! pdfinfo "$pdf" >/dev/null 2>&1; then
+              echo "$id: fetch failed ($url)"
+              echo "::endgroup::"
+              continue
+            fi
+            echo "id: $id"
+            echo "url: $url"
+            echo "sha256: $(sha256sum "$pdf" | cut -d' ' -f1)"
+            pdfinfo "$pdf" | grep -E '^(Title|Pages|CreationDate|ModDate):'
+            pdftotext -layout "$pdf" - | python3 bench/extraction/rule_lines.py --max 600
+            echo "::endgroup::"
+          done
